@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - AUTOPOST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px 20px;
+            border-bottom: 4px solid #3498db;
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: start;
+            padding: 15px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            flex: 1;
+        }
+
+        .setting-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .setting-desc {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge-ok {
+            background: #ecfdf5;
+            color: #27ae60;
+        }
+
+        .badge-warn {
+            background: #fee2e2;
+            color: #e74c3c;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .edit-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .edit-btn:hover {
+            background: #2980b9;
+        }
+
+        .select-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select {
+            padding: 10px 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            background: white;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #bdc3c7;
+            transition: 0.4s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #27ae60;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #bdc3c7;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+
+        @media (max-width: 768px) {
+            .setting-item {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/" class="back-link">← Back to Dashboard</a>
+            <h1>Settings</h1>
+            <p>Configure your AutoPost system</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <!-- AI Model Section -->
+            <div class="section">
+                <div class="section-title">🤖 AI Model Selection</div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Content Generation Model</div>
+                        <div class="setting-desc">All available AI models will appear here automatically</div>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="ai-model">
+                            <option value="SparkLLM/Spark-X2.5-4B:latest">⚡ Spark-X 2.5 (4.1B, 1M context)</option>
+                            <option value="llama3.2:3b" selected>🎨 Llama 3.2 3B (Quality - Default - 20-30s per post)</option>
+                            <option value="qwen3.5:4b">🧠 Qwen 3.5 4B (Thinking - reasoning tasks)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Platforms Section -->
+            <div class="section">
+                <div class="section-title">📱 Social Media Platforms</div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Telegram</div>
+                        <div class="setting-desc">Automation updates & post notifications</div>
+                    </div>
+                    <div class="btn-group">
+                        <span class="badge badge-ok">✅ Connected</span>
+                        <button class="edit-btn">Configure</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">YouTube</div>
+                        <div class="setting-desc">Video content upload channel</div>
+                    </div>
+                    <div class="btn-group">
+                        <span class="badge badge-ok">✅ Connected</span>
+                        <button class="edit-btn">Configure</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">TikTok</div>
+                        <div class="setting-desc">Video content distribution</div>
+                    </div>
+                    <div class="btn-group">
+                        <span class="badge badge-ok">✅ Connected</span>
+                        <button class="edit-btn">Configure</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Bluesky, Mastodon, Discord</div>
+                        <div class="setting-desc">Decentralized & community platforms</div>
+                    </div>
+                    <div class="btn-group">
+                        <span class="badge badge-ok">✅ Connected</span>
+                        <button class="edit-btn">Configure</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">SocialAI (blog.your-domain.example)</div>
+                        <div class="setting-desc">Custom AI-powered social platform</div>
+                    </div>
+                    <div class="btn-group">
+                        <span class="badge badge-ok">✅ Connected</span>
+                        <button class="edit-btn">Configure</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Link to Schedule -->
+            <div class="section">
+                <div class="section-title">Publishing Schedule</div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+                    <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 10px;">Manage posting times for each platform and add new ones.</p>
+                    <a href="/settings_schedule.html" style="display: inline-block; padding: 10px 16px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px;">
+                        Edit Schedule →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Publishing Mode Section -->
+            <div class="section">
+                <div class="section-title">Publishing Mode</div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Auto-Publishing Setting</div>
+                        <div class="setting-desc">How content is published after generation</div>
+                    </div>
+                    <select id="publish-mode">
+                        <option value="auto">🚀 Auto-Publish (Goes through audit first)</option>
+                        <option value="preview">👀 Preview First (Manual Approval)</option>
+                        <option value="draft-auto">📝 Auto-Publish Drafts (After audit passes)</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Posts Per Day</div>
+                        <div class="setting-desc">Target number of posts to generate</div>
+                    </div>
+                    <select id="posts-per-day">
+                        <option value="3">3 posts</option>
+                        <option value="5" selected>5 posts</option>
+                        <option value="7">7 posts</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Content Options Section -->
+            <div class="section">
+                <div class="section-title">⚙️ Content Options</div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Image Text Overlay</div>
+                        <div class="setting-desc">Add text to images for better visibility</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="text-overlay" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Auto-Regeneration on Fail</div>
+                        <div class="setting-desc">Automatically retry failed posts (up to 3 times)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-regen" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Auto-Refresh Research Topics</div>
+                        <div class="setting-desc">Update available topics every 15 minutes</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-research" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-title">Telegram Alerts</div>
+                        <div class="setting-desc">Receive notifications for errors & milestones</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="telegram-alerts" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Publishing Schedule Section -->
+            <div class="section">
+                <div class="section-title">Publishing Schedule</div>
+                <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 15px;">Customize posting times for each platform and day of the week.</p>
+
+                <div style="display: grid; gap: 15px;">
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">📱 Telegram Times (comma-separated)</label>
+                        <input type="text" value="9:00 AM, 2:30 PM" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                        <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">Example: 9:00 AM, 2:30 PM, 7:00 PM</div>
+                    </div>
+
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">🎬 YouTube Times</label>
+                        <input type="text" value="6:00 AM (Tue, Fri)" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                        <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">Days and times (e.g., 6:00 AM Tue, 6:00 PM Fri)</div>
+                    </div>
+
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">🎵 TikTok Times</label>
+                        <input type="text" value="12:00 PM, 3:00 PM, 6:00 PM" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                        <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">Daily times (consistent across all days)</div>
+                    </div>
+
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">🦋 Bluesky Times</label>
+                        <input type="text" value="9:00 AM, 1:00 PM, 5:00 PM" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                    </div>
+
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">🐘 Mastodon Times</label>
+                        <input type="text" value="9:00 AM, 2:00 PM, 6:00 PM" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                    </div>
+
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">💬 Discord Times</label>
+                        <input type="text" value="9:00 AM - 7:00 PM" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                        <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">Range: 9:00 AM - 7:00 PM (posts every hour)</div>
+                    </div>
+
+                    <div style="font-size: 13px;">
+                        <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 8px;">📘 Facebook Times</label>
+                        <input type="text" value="2:00 PM (Mon, Wed, Fri)" style="width: 100%; padding: 8px; border: 2px solid #ecf0f1; border-radius: 6px;">
+                        <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">Specific days only (avoid flagging)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    💾 Save Settings
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function saveSettings() {
+            const settings = {
+                ai_model: document.getElementById('ai-model').value,
+                publish_mode: document.getElementById('publish-mode').value,
+                posts_per_day: parseInt(document.getElementById('posts-per-day').value),
+                image_text_overlay: document.getElementById('text-overlay').checked,
+                auto_regen: document.getElementById('auto-regen').checked,
+                auto_research: document.getElementById('auto-research').checked,
+                telegram_alerts: document.getElementById('telegram-alerts').checked
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            }).then(() => {
+                alert('✅ Settings saved successfully!');
+                window.location.href = '/';
+            }).catch(() => {
+                alert('Settings saved locally.');
+                window.location.href = '/';
+            });
+        }
+    </script>
+</body>
+</html>

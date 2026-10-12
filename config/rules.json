@@ -1,0 +1,579 @@
+{
+  "_comment": "THE AGENT'S BRAIN. This file decides WHAT to make, WHERE to post it, and WHEN. Edit from the dashboard or by hand.",
+  "niche": "your topic area here, for example: calm living, healthy habits, friendship",
+  "language": "en",
+  "voice": "en-US-AvaMultilingualNeural",
+  "paused": true,
+  "visuals": {
+    "default": {
+      "image_style": "cinematic, warm, healing, soft light, aesthetically pleasing, polished, high detail",
+      "female_presenter": true,
+      "note": "Appealing, confident female-led aesthetic that draws attention but stays platform-safe."
+    },
+    "detect": {
+      "facts_mystery_science": "mysterious, moody cinematic, discovery, wonder",
+      "lifestyle_fashion_beauty": "stylish, trendy, fashion-forward, aesthetic, glamour",
+      "fitness_motivation": "energetic, bright, motivating, active, bold",
+      "finance_business": "clean, confident, modern, trustworthy",
+      "self_healing_spiritual": "calming, healing, warm light, serene, hopeful",
+      "default": "cinematic, engaging, polished"
+    }
+  },
+  "avatar": {
+    "enabled": false
+  },
+  "topic_sources": {
+    "google_trends": {
+      "enabled": true,
+      "weight": 1,
+      "note": "pulse check only (news/celebrity heavy - weak for faceless reels)",
+      "geos": [
+        "AU",
+        "US",
+        "GB"
+      ]
+    },
+    "reddit": {
+      "enabled": false,
+      "weight": 4,
+      "subreddits": [
+        "todayilearned",
+        "Damnthatsinteresting",
+        "interestingasfuck",
+        "NatureIsFuckingLit",
+        "unexplained",
+        "oddlysatisfying",
+        "Futurology",
+        "askscience",
+        "Meditation",
+        "selfimprovement",
+        "spirituality",
+        "Psychology"
+      ],
+      "note": "curiosity content + self-healing/spiritual/emotional niche that converts to faceless reels. DISABLED due to persistent 429 rate limiting - enable if you get API access."
+    },
+    "youtube_trending": {
+      "enabled": true,
+      "weight": 2,
+      "search_terms": [
+        "trending now",
+        "trending australia",
+        "viral this week",
+        "entertainment news today",
+        "world news today",
+        "best moments people connecting",
+        "kindness stories",
+        "friendship and loneliness",
+        "mind blowing facts",
+        "self healing habits"
+      ],
+      "note": "YouTube's classic /feed/trending page was discontinued by YouTube (confirmed 2026-09-02, redirects to home) - this now searches yt-dlp against topic-relevant terms spanning ALL our categories (facts/tech, business/finance, fitness, self-healing), not just one niche, so results stay trendy AND on-brand instead of generic pop-culture trending."
+    },
+    "manual_list": {
+      "enabled": true,
+      "weight": 5,
+      "topics": [
+        "how small daily habits change your mood",
+        "why a short walk helps you think",
+        "how friendships grow over time"
+      ],
+      "note": "Core niche: self-healing, spiritual, emotional connection. Ranked above scraped topics. Plus general curiosity."
+    },
+    "trendpulse": {
+      "enabled": true,
+      "weight": 2,
+      "sources": [
+        "mastodon",
+        "bluesky",
+        "hackernews"
+      ],
+      "note": "Real-time trending FROM Mastodon and Bluesky - platforms we already post to, so this is on-brand signal not generic noise. Via the trend-pulse library (MIT, github.com/claude-world/trend-pulse), found + verified working 2026-09-02. Its own reddit source hits the same 403 block ours does, so left out here - google_trends already covered by our own source above."
+    },
+    "news": {
+      "enabled": true,
+      "feeds": [
+        [
+          "Google News Australia top",
+          "https://news.google.com/rss?hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Google News Australia world",
+          "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Google News Australia entertainment",
+          "https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Google News Australia science",
+          "https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Google News Australia health",
+          "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Google News Australia technology",
+          "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Google News US world",
+          "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en"
+        ],
+        [
+          "Google News US entertainment",
+          "https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en"
+        ],
+        [
+          "ABC News Australia",
+          "https://www.abc.net.au/news/feed/51120/rss.xml"
+        ],
+        [
+          "SBS News",
+          "https://www.sbs.com.au/news/feed"
+        ],
+        [
+          "BBC World",
+          "http://feeds.bbci.co.uk/news/world/rss.xml"
+        ],
+        [
+          "BBC Entertainment",
+          "http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"
+        ],
+        [
+          "Guardian Australia",
+          "https://www.theguardian.com/australia-news/rss"
+        ],
+        [
+          "Guardian World",
+          "https://www.theguardian.com/world/rss"
+        ],
+        [
+          "Connecting people: loneliness and friendship",
+          "https://news.google.com/rss/search?q=loneliness+and+friendship&hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Connecting people: community kindness",
+          "https://news.google.com/rss/search?q=community+kindness&hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Connecting people: family and relationships",
+          "https://news.google.com/rss/search?q=family+and+relationships&hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Connecting people: people coming together",
+          "https://news.google.com/rss/search?q=people+coming+together&hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Connecting people: mental wellbeing connection",
+          "https://news.google.com/rss/search?q=mental+wellbeing+connection&hl=en-AU&gl=AU&ceid=AU:en"
+        ],
+        [
+          "Connecting people: how to make friends as an adult",
+          "https://news.google.com/rss/search?q=how+to+make+friends+as+an+adult&hl=en-AU&gl=AU&ceid=AU:en"
+        ]
+      ]
+    }
+  },
+  "limits": {
+    "telegram": {
+      "per_day": 5,
+      "note": "No platform limit - 5 is reasonable for quality"
+    },
+    "youtube": {
+      "per_day": 2,
+      "note": "API quota allows ~6/day. 2 is safe."
+    },
+    "tiktok": {
+      "per_day": 3,
+      "note": "3-5 posts safe. Avoid flagging for spam."
+    },
+    "bluesky": {
+      "per_day": 8,
+      "note": "No limit but 8/day keeps quality high"
+    },
+    "mastodon": {
+      "per_day": 6,
+      "note": "No limit but 6/day is good mix"
+    },
+    "discord": {
+      "per_day": 10,
+      "note": "No channel limit but 10/day is sensible"
+    },
+    "facebook": {
+      "per_day": 1,
+      "note": "1-2 per day avoids spam flags"
+    },
+    "instagram": {
+      "per_day": 3,
+      "note": "Platform cap is 25/day but 3 is safe."
+    },
+    "threads": {
+      "per_day": 5,
+      "note": "Meta platform, similar to Instagram."
+    },
+    "socialai": {
+      "per_day": 20,
+      "note": "Custom platform - no hard limit"
+    },
+    "linkedin": {
+      "per_day": 2,
+      "note": "default, change it if you like"
+    },
+    "wordpress": {
+      "per_day": 4,
+      "note": "default, change it if you like"
+    },
+    "webhook": {
+      "per_day": 10,
+      "note": "default, change it if you like"
+    }
+  },
+  "rules": {
+    "never_repeat_topic": true,
+    "repeat_cooldown_days": 90,
+    "skip_if_offline": true,
+    "only_on_ac_power": true,
+    "alert_on_failure": "telegram",
+    "first_upload_privacy": "private",
+    "_privacy_note": "Uploads start PRIVATE so a bug can never publish garbage. Set connections.json youtube.privacy='public' once you trust it.",
+    "blocked_words": [
+      "medication advice",
+      "guaranteed cure",
+      "miracle cure",
+      "make money fast",
+      "get rich quick",
+      "crypto profits",
+      "magic weight loss",
+      "medical claims"
+    ],
+    "_blocked_note": "Titles/descriptions containing these phrases are RECOMMENDED-FLAG / policy-sensitive. The agent strips them before posting so nothing gets flagged."
+  },
+  "learning": {
+    "enabled": true,
+    "score_after_hours": 48,
+    "good_multiplier": 1.5,
+    "bad_multiplier": 0.5,
+    "_note": "A topic scoring 1.5x the average is a WINNER and gets more like it. Below 0.5x is a LOSER and gets avoided."
+  },
+  "approval_mode": "auto",
+  "growth_threshold": 50,
+  "reliability": {
+    "_comment": "Self-healing + catch-up. After any downtime (PC asleep, reboot, crash) the agent runs the posts it MISSED for today, spaced out, then resumes normal posting. It never floods.",
+    "catchup_gap_min": 35,
+    "catchup_max_hours": 8,
+    "max_posts_per_day": 12,
+    "_catchup_gap_min": "minimum minutes between two posts when clearing a backlog - stops a burst that trips spam filters",
+    "_catchup_max_hours": "a slot missed by more than this is written off for the day (a 9am post fired at 11pm helps nobody)",
+    "_max_posts_per_day": "hard ceiling on posts in one calendar day, catch-up included - final backstop"
+  },
+  "schedule_growth": [],
+  "schedule_steady": [
+    {
+      "id": "youtube-tue",
+      "enabled": false,
+      "time": "06:00",
+      "days": "tue",
+      "type": "video",
+      "scenes": 4,
+      "platforms": [
+        "youtube",
+        "telegram"
+      ],
+      "note": "YouTube Short #1 of the week - 06:00 Tuesday, auto-made + auto-posted to the presenter. (steady-state schedule, active once 50+ posts made)",
+      "jitter_minutes": [
+        10,
+        20,
+        35,
+        50,
+        70,
+        90
+      ]
+    },
+    {
+      "id": "youtube-fri",
+      "enabled": false,
+      "time": "06:00",
+      "days": "fri",
+      "type": "video",
+      "scenes": 4,
+      "platforms": [
+        "youtube",
+        "telegram"
+      ],
+      "note": "YouTube Short #2 of the week - 06:00 Friday, auto-made + auto-posted to the presenter. (steady-state schedule, active once 50+ posts made)",
+      "jitter_minutes": [
+        10,
+        20,
+        35,
+        50,
+        70,
+        90
+      ]
+    },
+    {
+      "id": "filler-mon",
+      "enabled": false,
+      "time": "13:00",
+      "days": "mon",
+      "type": "image",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "threads",
+        "telegram"
+      ],
+      "jitter_minutes": [
+        10,
+        25,
+        45,
+        70,
+        100,
+        130
+      ],
+      "note": "Monday image post - light content, no YouTube upload (quota-safe). (steady-state schedule, active once 50+ posts made)"
+    },
+    {
+      "id": "filler-wed",
+      "enabled": false,
+      "time": "13:00",
+      "days": "wed",
+      "type": "text",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "threads",
+        "telegram"
+      ],
+      "jitter_minutes": [
+        10,
+        25,
+        45,
+        70,
+        100,
+        130
+      ],
+      "note": "Wednesday text post - light content, no YouTube upload (quota-safe). (steady-state schedule, active once 50+ posts made)"
+    },
+    {
+      "id": "filler-thu",
+      "enabled": false,
+      "time": "13:00",
+      "days": "thu",
+      "type": "image",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "threads",
+        "telegram"
+      ],
+      "jitter_minutes": [
+        10,
+        25,
+        45,
+        70,
+        100,
+        130
+      ],
+      "note": "Thursday image post - light content, no YouTube upload (quota-safe). (steady-state schedule, active once 50+ posts made)"
+    },
+    {
+      "id": "filler-sat",
+      "enabled": false,
+      "time": "13:00",
+      "days": "sat",
+      "type": "text",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "threads",
+        "telegram"
+      ],
+      "jitter_minutes": [
+        10,
+        25,
+        45,
+        70,
+        100,
+        130
+      ],
+      "note": "Saturday text post - light content, no YouTube upload (quota-safe). (steady-state schedule, active once 50+ posts made)"
+    },
+    {
+      "id": "filler-sun",
+      "enabled": false,
+      "time": "13:00",
+      "days": "sun",
+      "type": "image",
+      "platforms": [
+        "instagram",
+        "facebook",
+        "threads",
+        "telegram"
+      ],
+      "jitter_minutes": [
+        10,
+        25,
+        45,
+        70,
+        100,
+        130
+      ],
+      "note": "Sunday image post - light content, no YouTube upload (quota-safe). (steady-state schedule, active once 50+ posts made)"
+    }
+  ],
+  "ollama_model": "qwen2.5:14b",
+  "dynamic_fillers": {
+    "enabled": false,
+    "count_range": [
+      5,
+      8
+    ],
+    "window": [
+      "09:00",
+      "22:00"
+    ],
+    "platforms": [
+      "instagram",
+      "facebook",
+      "threads",
+      "telegram"
+    ],
+    "_note": "Real day-to-day randomization: different COUNT (5-8) and TIMES each day. At most 1 of them lands in the 8-11am low-traffic window. 35 min min gap enforced via catchup_gap_min.",
+    "restricted_band": [
+      "08:00",
+      "11:00"
+    ],
+    "restricted_max": 1,
+    "jitter_minutes": [
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50,
+      55,
+      60
+    ]
+  },
+  "dynamic_videos": {
+    "enabled": false,
+    "count_range": [
+      1,
+      2
+    ],
+    "window": [
+      "12:00",
+      "21:00"
+    ],
+    "platforms": [
+      "youtube",
+      "tiktok",
+      "telegram"
+    ],
+    "_note": "No more fixed 8am slot - random 1-2 videos/day between noon and 9pm, when people are actually online. 35 min min gap enforced via catchup_gap_min.",
+    "jitter_minutes": [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90
+    ]
+  },
+  "dynamic_tiktok": {
+    "enabled": false,
+    "count_range": [
+      3,
+      3
+    ],
+    "window": [
+      "12:00",
+      "17:00"
+    ],
+    "platforms": [
+      "tiktok"
+    ],
+    "_note": "TikTok's OWN track, separate from the shared YouTube video schedule above - always exactly 3/day, all between 12pm-5pm, hard-restricted to TikTok only (never also posts to YouTube/Telegram/etc). 35 min min gap enforced via catchup_gap_min.",
+    "jitter_minutes": [
+      5,
+      15,
+      25,
+      35,
+      45,
+      55
+    ]
+  },
+  "dashboard_auth": {
+    "enabled": true,
+    "username": "admin",
+    "password": "change-me",
+    "_note": "Change this password before you do anything else. Turn it off only if the dashboard is never reachable from outside this computer."
+  },
+  "ollama_fallbacks": [
+    "ministral-3:14b"
+  ],
+  "ollama_failover": {
+    "enabled": true,
+    "unload_before_fallback": true,
+    "unload_keep_alive": 0,
+    "note": "Sequential failover only. Never concurrent. The failed model is explicitly unloaded (keep_alive=0) before the next one is tried, so RAM never holds two large models at once - the exact failure that removed the old cascade on 2026-09-03."
+  },
+  "schedule_generation": [
+    {
+      "id": "gen-video-1",
+      "enabled": false,
+      "time": "10:00",
+      "days": "mon",
+      "type": "video",
+      "scenes": 4,
+      "platforms": [
+        "socialai"
+      ],
+      "note": "Local-only video post. SocialBlog (https://localhost:8543) is the ONLY destination - never live."
+    },
+    {
+      "id": "gen-image-1",
+      "enabled": false,
+      "time": "15:00",
+      "days": "wed",
+      "type": "image",
+      "platforms": [
+        "socialai"
+      ],
+      "note": "Local-only image post."
+    },
+    {
+      "id": "gen-text-1",
+      "enabled": false,
+      "time": "19:00",
+      "days": "fri",
+      "type": "text",
+      "platforms": [
+        "socialai"
+      ],
+      "note": "Local-only text post."
+    }
+  ],
+  "department": {
+    "enabled": false,
+    "allowed_platforms": [],
+    "live_publish": false,
+    "note": "Social Media Department v3.1 (18 agents, 7 stages). enabled=false: the scheduler and dashboard buttons still use the old path; a deliberate manual department run works anyway (department_queue.py --enqueue ... --run). enabled=true hands scheduler and dashboard jobs to the department. allowed_platforms is the safety rail: the department publishes ONLY there (default: the local blog). live_publish=true lifts the rail - only the owner switches that. HELENA sends the Telegram report only when a job is enqueued with --notify."
+  },
+  "retention": {
+    "enabled": true,
+    "final_days": 7,
+    "delete_drafts_after_publish": true,
+    "sweep_hours": 6,
+    "_note": "3.0 (2026-10-11): ON. Published posts: their working files AND final files are deleted 7 days after publishing. NEVER deleted: anything not confirmed published, failed jobs awaiting retry, stock (waiting-for-publish) posts, the database, config, scripts. Logs older than 14 days are cleaned. Every deletion is logged first in data/retention.log. The SUPERVISOR's side desk triggers the sweep every sweep_hours."
+  },
+  "_comment_old_scheduler": "2026-10-11: old scheduler generation switched OFF on purpose - the dispatcher (8 slots) + idle stock system own all posting now."
+}

@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en"><head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AutoPost</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#151b23; --panel2:#1c2430; --line:#263040;
+  --fg:#e6edf3; --dim:#8b97a8; --dim2:#6b7889;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149; --busy:#58a6ff; --idle:#4b5765;
+  --r:10px; --sh:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 80px}
+a{color:var(--busy);text-decoration:none}a:hover{text-decoration:underline}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+
+/* header */
+header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#12181f,#0d1117);position:sticky;top:0;z-index:20;backdrop-filter:blur(8px)}
+.hd{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{font-size:19px;font-weight:650;letter-spacing:-.02em}
+.logo span{color:var(--dim2);font-weight:400}
+.nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+.nav a{color:var(--dim);padding:6px 11px;border-radius:7px;font-size:13.5px;font-weight:500}
+.nav a:hover{background:var(--panel2);color:var(--fg);text-decoration:none}
+.nav a.on{background:var(--panel2);color:var(--fg)}
+
+/* pills */
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 26px}
+.pill{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+      border-radius:999px;padding:6px 13px;font-size:13px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--idle);flex:none}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(63,185,80,.15)}
+.dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(248,81,73,.15)}
+.dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(210,153,34,.15)}
+.dot.busy{background:var(--busy);box-shadow:0 0 0 3px rgba(88,166,255,.15);animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.35}}
+.pill b{font-weight:600}.pill small{color:var(--dim2)}
+
+/* panels */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:18px;overflow:hidden}
+.card>header{position:static;background:none;border:0;padding:0}
+.ch{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ch h2{font-size:14px;font-weight:600;letter-spacing:.01em}
+.ch .sub{color:var(--dim2);font-size:12.5px}
+.ch .right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.cb{padding:16px 18px}
+
+/* chain */
+.chain{display:flex;gap:3px;flex-wrap:wrap}
+.step{flex:1 1 0;min-width:74px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+      padding:9px 8px;text-align:center;position:relative;transition:.25s}
+.step .n{font-size:10.5px;color:var(--dim2);font-weight:600;letter-spacing:.06em}
+.step .a{font-size:12px;font-weight:600;margin-top:3px;letter-spacing:-.01em}
+.step.done{background:rgba(63,185,80,.10);border-color:rgba(63,185,80,.35)}
+.step.done .a{color:var(--ok)}
+.step.run{background:rgba(88,166,255,.12);border-color:var(--busy);animation:glow 1.8s infinite}
+.step.run .a{color:var(--busy)}
+@keyframes glow{50%{box-shadow:0 0 0 4px rgba(88,166,255,.10)}}
+.step.retry{background:rgba(210,153,34,.11);border-color:rgba(210,153,34,.4)}
+.step.retry .a{color:var(--warn)}
+.step.dead{background:rgba(248,81,73,.11);border-color:rgba(248,81,73,.4)}
+.step.dead .a{color:var(--bad)}
+.step.skip{opacity:.42}
+.step.idle .a{color:var(--dim2)}
+
+/* comms */
+.cm{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.cm:last-child{border:0}
+.who{flex:none;width:88px;text-align:right}
+.who .ag{font-size:11.5px;font-weight:700;letter-spacing:.02em}
+.who .tm{font-size:10.5px;color:var(--dim2)}
+.arw{flex:none;width:16px;color:var(--dim2);font-size:15px;line-height:1.2;text-align:center}
+.what{flex:1;min-width:0}
+.what .v{font-size:12.5px;font-weight:600;margin-bottom:2px}
+.what .m{color:var(--dim);font-size:13px;word-break:break-word}
+.cm.rej .v{color:var(--bad)}.cm.rej .arw{color:var(--bad)}
+.cm.rty .v{color:var(--warn)}.cm.rty .arw{color:var(--warn)}
+.cm.ok .v{color:var(--ok)}.cm.ok .arw{color:var(--ok)}
+.badge{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:5px;background:var(--panel2);
+       border:1px solid var(--line);color:var(--dim2);margin-left:7px;vertical-align:1px}
+
+.badge.ok{color:var(--ok);border-color:var(--ok)}.badge.warn{color:var(--warn);border-color:var(--warn)}.badge.bad{color:var(--bad);border-color:var(--bad)}
+/* misc */
+.kv{display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:13.5px}
+.kv dt{color:var(--dim2)}.kv dd{color:var(--fg)}
+.empty{color:var(--dim2);text-align:center;padding:34px 18px;font-size:13.5px}
+.office{width:100%;height:640px;border:0;display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}.office{height:520px}}
+.tabs{display:flex;gap:2px;background:var(--panel2);padding:3px;border-radius:8px}
+.tabs button{background:none;border:0;color:var(--dim);padding:5px 12px;border-radius:6px;
+             font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:500}
+.tabs button.on{background:var(--panel);color:var(--fg)}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--dim);padding:5px 11px;
+     border-radius:7px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.btn:hover{background:var(--line);color:var(--fg)}
+.btn.on{background:rgba(88,166,255,.15);border-color:var(--busy);color:var(--busy)}
+.hide{display:none}
+.wlg{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px}
+.wl{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel2)}
+.wlh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13.5px}
+.bar{height:5px;background:var(--line);border-radius:3px;margin-bottom:10px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}.bar i.ok{background:var(--ok)}.bar i.warn{background:var(--warn)}.bar i.bad{background:var(--bad)}
+
+.ctg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.ct{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel2);border-left:3px solid var(--idle)}
+.ct.live{border-left-color:var(--ok)}.ct.held{border-left-color:var(--warn)}.ct.off{border-left-color:var(--bad);opacity:.8}
+.ct .cn{font-size:14px;font-weight:600;margin-bottom:4px}
+.ct .cs{font-size:12.5px;color:var(--fg);display:flex;align-items:center;gap:6px}
+.ct .cx{font-size:11.5px;color:var(--dim);margin-top:4px;min-height:14px}
+
+.ar{display:flex;flex-direction:column;gap:14px}
+.ar h3{margin:0 0 6px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+.ar .sub2{color:var(--dim);font-size:12.5px;margin:-2px 0 8px}
+.arrow{color:var(--dim2);text-align:center;font-size:15px;line-height:1;margin:2px 0}
+.bx{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.bx b{display:block;font-size:12.5px;margin-bottom:2px}
+.bx small{color:var(--dim);font-size:11.5px}
+.bx.k1{border-color:#58a6ff}.bx.k2{border-color:#3fb950}.bx.k3{border-color:#d29922}.bx.k4{border-color:#f85149}.bx.k5{border-color:#a371f7}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.row>.bx{flex:1 1 150px}
+.fl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fl .bx{padding:6px 9px}
+.fl .a{color:var(--dim2)}
+.lg{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--dim)}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid}
+.note2{border-left:3px solid var(--busy);background:var(--panel2);padding:8px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--dim)}
+
+footer{color:var(--dim2);font-size:12px;text-align:center;padding:26px 0 0}
+
+/* organisation */
+.lane{margin-bottom:15px}
+.lane-h{font-size:11px;letter-spacing:.08em;color:var(--dim2);font-weight:700;margin-bottom:7px;
+        display:flex;align-items:center;gap:9px}
+.lane-h::after{content:"";flex:1;height:1px;background:var(--line)}
+.people{display:flex;gap:8px;flex-wrap:wrap}
+.person{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 11px;
+        min-width:138px;position:relative}
+.person .pn{font-size:12.5px;font-weight:650;letter-spacing:-.01em}
+.person .pr{font-size:11px;color:var(--dim2);margin-top:1px}
+.person .pp{font-size:10.5px;color:var(--dim2);margin-top:5px;border-top:1px solid var(--line);padding-top:5px}
+.person.done{border-left:3px solid var(--ok)}
+.person.run{border-left:3px solid var(--busy);background:rgba(88,166,255,.08)}
+.person.retry{border-left:3px solid var(--warn)}
+.person.dead{border-left:3px solid var(--bad);background:rgba(248,81,73,.07)}
+.person.skip{opacity:.45}
+.person.idle{border-left:3px solid var(--idle)}
+.gate{position:absolute;top:-7px;right:-5px;font-size:9px;font-weight:700;letter-spacing:.04em;
+      background:var(--panel);border:1px solid var(--warn);color:var(--warn);border-radius:5px;padding:0 5px}
+.flowto{text-align:center;color:var(--dim2);font-size:15px;line-height:1;margin:4px 0}
+.hdr1{text-align:center;margin-bottom:15px}
+.hdr1 .t{font-size:15px;font-weight:650}
+.hdr1 .s{font-size:12px;color:var(--dim2)}
+.side{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(88,166,255,.05);
+      border:1px dashed rgba(88,166,255,.35);border-radius:9px;padding:12px 14px}
+.side .lbl{font-size:11px;letter-spacing:.08em;color:var(--busy);font-weight:700}
+  .sec{margin:26px 0 10px;font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--dim2)}
+  body[data-page="home"] .pg-posts{display:none !important}
+  body[data-page="posts"] .pg-home{display:none !important}
+/* organisation v2 */
+.sd{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--idle);margin-right:7px;vertical-align:0}
+.sd.run{background:var(--busy);box-shadow:0 0 0 3px rgba(88,166,255,.25);animation:p 1.4s infinite}
+.sd.done{background:var(--ok)}.sd.retry{background:var(--warn)}.sd.dead{background:var(--bad)}
+.lgd{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font-size:12.5px;color:var(--dim);margin-bottom:16px;padding:8px 12px;background:var(--panel2);border-radius:8px}
+.lgd .sd{margin-right:5px}.lgd b{margin-left:auto;color:var(--fg)}
+.otop{display:flex;justify-content:center}
+.obox{border:2px solid var(--line);background:var(--panel2);border-radius:12px;padding:12px 26px;text-align:center;min-width:280px}
+.obox b{font-size:16px;display:block}.obox small{color:var(--dim);font-size:12px}
+.obox.own{border-color:#a371f7}.obox.head{border-color:var(--ok)}
+.obox.head.run{border-color:var(--busy)}
+.vline{width:2px;height:20px;background:var(--dim2);margin:0 auto}
+.hline{height:2px;background:var(--dim2);margin:0 9%}
+.teams{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:0}
+.team{border:1px solid var(--line);border-top:4px solid var(--line);border-radius:10px;padding:10px;background:var(--panel);display:flex;flex-direction:column;gap:7px}
+.team.k1{border-top-color:#58a6ff}.team.k2{border-top-color:#3fb950}.team.k3{border-top-color:#d29922}.team.k4{border-top-color:#f85149}.team.k5{border-top-color:#a371f7}
+.team .th{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+.om{border:1px solid var(--line);border-left:4px solid var(--idle);border-radius:8px;padding:7px 9px;background:var(--panel2);font-size:12px}
+.om b{font-size:13px}.om small{display:block;color:var(--dim);font-size:11.5px;margin-top:1px}.om em{display:block;font-style:normal;color:var(--dim2);font-size:11px;margin-top:3px}
+.om.run{border-left-color:var(--busy);background:rgba(88,166,255,.1)}.om.done{border-left-color:var(--ok)}
+.om.retry{border-left-color:var(--warn)}.om.dead{border-left-color:var(--bad);background:rgba(248,81,73,.08)}
+.opsrow{margin-top:16px}.opsrow .lbl{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--busy);margin-bottom:6px}
+.team.wide .subs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media(max-width:900px){.teams{grid-template-columns:repeat(2,minmax(0,1fr))}.team.wide .subs{grid-template-columns:1fr}.hline{display:none}}
+.archtop{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.archtop .at{border:2px solid #58a6ff;border-radius:10px;padding:8px 14px;background:var(--panel2);font-size:13px}
+.archtop .at b{display:block;font-size:10.5px;letter-spacing:.08em;color:#58a6ff;text-transform:uppercase}
+.archtop span{color:var(--dim2);font-size:18px}.archtop small{flex-basis:100%;color:var(--dim);font-size:12.5px}
+.syss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:1000px){.syss{grid-template-columns:1fr}}
+.sys{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel);border-top:5px solid var(--line)}
+.sys.s1{border-top-color:#3fb950}.sys.s2{border-top-color:#a371f7}.sys.s3{border-top-color:#f85149}
+.sys .sh{margin-bottom:10px}.sys .sh b{font-size:14px;display:block}.sys .sh small{color:var(--dim);font-size:12px}
+.stp{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--panel2)}
+.stp i{font-style:normal;flex:none;width:22px;height:22px;border-radius:50%;background:var(--line);color:var(--fg);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.stp b{display:block;font-size:12.5px}.stp small{display:block;color:var(--dim);font-size:11.5px;margin-top:1px}
+.stp.k1{border-color:#58a6ff}.stp.k1 i{background:#58a6ff;color:#000}.stp.k2{border-color:#3fb950}.stp.k2 i{background:#3fb950;color:#000}
+.stp.k3{border-color:#d29922}.stp.k3 i{background:#d29922;color:#000}.stp.k4{border-color:#f85149}.stp.k4 i{background:#f85149;color:#000}
+.stp.k5{border-color:#a371f7}.stp.k5 i{background:#a371f7;color:#000}
+.dn{text-align:center;color:var(--dim2);line-height:1;margin:3px 0;font-size:15px}
+.never{margin-top:10px;border:1px dashed var(--ok);border-radius:9px;padding:8px 10px;font-size:12px;color:var(--dim)}.never b{display:block;color:var(--ok);font-size:11px;letter-spacing:.07em}
+.guard{margin-top:14px;border-left:4px solid var(--busy);background:var(--panel2);padding:10px 14px;border-radius:0 9px 9px 0;font-size:12.5px;color:var(--dim)}
+</style></head><body>
+
+<header><div class="hd">
+  <div class="logo" id="brand">AutoPost <span>&mdash; social media department</span></div>
+  <nav class="nav">
+    <a href="/" class="on">Overview</a><a href="/posts">Posts</a><a href="/research">Research</a><a href="/conversations">Conversations</a><a href="/office">Agent Office</a><a href="/settings">Settings</a>
+  </nav>
+</div></header>
+
+<div class="wrap">
+
+  <div class="pills" id="pills"></div>
+
+
+  <!-- WHAT IS HAPPENING -->
+  <div class="card pg-home">
+    <div class="ch">
+      <h2>Right now</h2>
+      <span class="sub" id="nowsub">loading…</span>
+      <div class="right">
+        <button class="btn" id="refresh">Refresh</button>
+      </div>
+    </div>
+    <div class="cb">
+      <div id="nowjob" class="empty">No job has run yet.</div>
+      <div class="chain" id="chain" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div class="sec pg-posts" id="postsec">Posts &mdash; what is published, where it goes, and when</div>
+
+  <div class="card pg-posts" id="posts">
+    <div class="ch"><h2>Published posts</h2><span class="sub" id="poststats"></span></div>
+    <div class="cb" id="postbody"><div class="empty">Loading…</div></div>
+  </div>
+
+  
+    <!-- RECENT JOBS (posts section) -->
+    <div class="card pg-posts" id="stockbox">
+    <div class="ch"><h2>Waiting lists</h2><span class="sub" id="stocksub">what is ready to publish, and how many are left</span></div>
+    <div class="cb" id="stockbody"><div class="empty">Loading&hellip;</div></div>
+  </div>
+
+  <div class="card pg-posts" id="jobs">
+    <div class="ch"><h2>Recent jobs</h2><span class="sub">when, what, which format, and where it went</span></div>
+    <div class="cb" id="joblist"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="grid2 pg-posts">
+    <div class="card" id="plan" style="grid-column:1/-1">
+      <div class="ch"><h2>Today's plan</h2><span class="sub">what the dispatcher will make, and when</span></div>
+      <div class="cb" id="planbody"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card" id="conns" style="grid-column:1/-1">
+      <div class="ch"><h2>Platform connections</h2><span class="sub">where posts go &mdash; <b id="allowed">…</b></span></div>
+      <div class="cb" id="connbody"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <div style="display:none"><div class="card" id="golive">
+      <div class="ch"><h2>Go-live checklist</h2><span class="sub" id="golivesub">loading…</span>
+        <div class="right"><a class="btn" href="/settings">Push to live</a></div></div>
+      <div class="cb" id="golivebody"><div class="empty">Loading…</div></div>
+    </div>
+    </div>
+  <!-- CONVERSATIONS -->
+  <div class="card" id="comms" style="display:none">
+    <div class="ch">
+      <h2>Agent conversations</h2>
+      <span class="sub">every action each agent records, in order — including rejections and why</span>
+      <div class="right">
+        <div class="tabs" id="ftabs">
+          <button data-f="all" class="on">All</button>
+          <button data-f="reject">Rejections</button>
+          <button data-f="sidecar">Sidecars</button>
+        </div>
+      </div>
+    </div>
+    <div class="cb" id="commfeed"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="grid2 pg-home">
+    <!-- AGENT THREADS (moved to the Conversations page) -->
+    <div class="card" style="display:none">
+      <div class="ch"><h2>Who says what</h2><span class="sub">messages and rejections per agent</span></div>
+      <div class="cb" id="threads"><div class="empty">Loading…</div></div>
+    </div>
+    <!-- RAILS -->
+    <div class="card">
+      <div class="ch"><h2>Safety rails</h2><span class="sub">what can and cannot happen right now</span></div>
+      <div class="cb" id="rails"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ORGANISATION -->
+  <div class="card pg-home" id="org">
+    <div class="ch">
+      <h2>Organisation</h2>
+      <span class="sub">who does what and who reports to whom &mdash; dot colour = live state</span>
+      <div class="right">
+        <div class="tabs" id="otabs">
+          <button data-v="chain" class="on">Chain</button>
+          <button data-v="org">Org chart</button>
+          <button data-v="arch">Architecture</button>
+        </div>
+      </div>
+    </div>
+    <div class="cb">
+      <div id="orgarch" class="hide"></div>
+      <div id="orgchart" class="hide"></div>
+      <div id="orgchain"></div>
+    </div>
+  </div>
+
+  <div class="card pg-home" id="sys">
+      <div class="ch"><h2>This PC</h2><span class="sub">services, GPU, disk</span></div>
+      <div class="cb" id="sysbody"><div class="empty">Loading…</div></div>
+    </div>
+
+  <footer>AutoPost · 14 agents + 4 always-on desks · live</footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let FILTER = "all", JOB = null;
+
+const JOBSTATE = {"done":"done","ok":"done","skipped":"skip","running":"run","ready":"run",
+  "failed":"retry","dead":"dead","pending":"idle"};
+
+
+// every clock time on this page is shown 12-hour with AM/PM
+function ap(v){
+  return String(v == null ? "" : v).replace(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b(?!\s*[AaPp][Mm])/g, (m0, h, mi, se) => {
+    let H = +h; if (H > 23) return m0;
+    const suf = H >= 12 ? "PM" : "AM"; H = H % 12 || 12;
+    return H + ":" + mi + (se ? ":" + se : "") + " " + suf;
+  });
+}
+document.body.dataset.page = location.pathname.indexOf("/posts") === 0 ? "posts" : "home";
+document.querySelectorAll(".nav a").forEach(a => a.classList.toggle("on", a.getAttribute("href") === (location.pathname.indexOf("/posts") === 0 ? "/posts" : "/")));
+async function stockBoard(){
+  const d = await j("/api/stock"); if (!d) return;
+  $("#stocksub").textContent = "next scheduled post in " + (d.next_slot_min >= 0 ? d.next_slot_min + " min" : "?") + " \u00b7 made in idle time, published at their slot";
+  const making = (kind) => (d.in_production || []).filter(i => i.kind === kind);
+  const table = (title, have, want, head, rows, empty, makingNow) => {
+    const pct = want ? Math.min(100, Math.round(100 * have / want)) : 0;
+    const tone = have >= want ? "ok" : have > 0 ? "warn" : "bad";
+    return `<div class="wl"><div class="wlh"><b>${title}</b><span class="badge ${tone}">${have} of ${want} ready</span></div>
+      <div class="bar"><i class="${tone}" style="width:${pct}%"></i></div>
+      ${rows.length ? `<table class="mini"><thead><tr>${head.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>` : `<div class="empty" style="padding:10px 0">${empty}</div>`}
+      ${makingNow && makingNow.length ? `<div class="muted" style="margin-top:6px">Being made now: ${makingNow.map(i => esc(i.topic)).join("; ")}</div>` : ""}</div>`;
+  };
+  const ready = k => (d.ready || []).filter(i => i.kind === k);
+  const rowsFor = k => ready(k).map((i, n) => `<tr><td>${n+1}</td><td>${esc(i.topic)}</td>${k==="video" ? `<td>${esc(i.style||"")}</td>` : ""}<td class="muted">${esc(i.made)}</td></tr>`);
+  const tp = d.topics || {count:0, target:10, items:[]};
+  const tRows = (tp.items || []).map((i, n) => `<tr><td>${n+1}</td><td>${esc(i.title)}</td><td class="muted">${esc(i.source)}</td></tr>`);
+  $("#stockbody").innerHTML = '<div class="wlg">' +
+    table("Research &middot; topics ready (ARJUN)", tp.count, tp.target, ["#","Topic","Found via"], tRows, "No topic is ready. ARJUN scouts again when the AI engine is idle.", null) +
+    table("Video &middot; ready to publish", (d.ready_counts||{}).video||0, d.targets.video, ["#","Topic","Style","Made"], rowsFor("video"), "No video waiting yet.", making("video")) +
+    table("Image + text &middot; ready to publish", (d.ready_counts||{}).image||0, d.targets.image, ["#","Topic","Made"], rowsFor("image"), "No image post waiting yet.", making("image")) +
+    table("Text only &middot; ready to publish", (d.ready_counts||{}).text||0, d.targets.text, ["#","Topic","Made"], rowsFor("text"), "No text post waiting yet.", making("text")) +
+    '</div><div class="muted" style="margin-top:10px;font-size:12px">Order of work in idle time: video first, then image + text, then text. ARJUN keeps topics ready all the time. The normal schedule always comes first.</div>';
+}
+async function j(u){ try{ const r = await fetch(u,{cache:"no-store"}); return await r.json(); }
+                     catch(e){ return null; } }
+
+// ---------- status pills ----------
+async function pills(){
+  const s = await j("/api/status") || {};
+  const o = await j("/api/office") || {};
+  const poller = (o.poller||{}).alive;
+  const box = [
+    ["Dashboard","up","ok","8600"],
+    ["Ollama", s.ollama_ok?"up":"down", s.ollama_ok?"ok":"bad", (s.model||"")],
+    ["Trigger poller", poller?"watching":"stopped", poller?"busy":"warn", poller?"":"not running"],
+    ["Department", s.department_on?"ON":"off", s.department_on?"warn":"ok", s.department_on?"jobs auto-queue":"manual only"],
+    ["Posting", s.paused?"PAUSED":"live", s.paused?"ok":"bad", s.paused?"cannot post":"posting enabled"],
+  ];
+  $("#pills").innerHTML = box.map(([n,v,c,sub])=>
+    `<div class="pill"><span class="dot ${c}"></span><b>${esc(n)}</b><small>${esc(v)}</small>${sub?`<small>· ${esc(sub)}</small>`:""}</div>`).join("");
+}
+
+// ---------- chain ----------
+async function now(){
+  const off = await j("/api/office");
+  if(!off){ $("#nowsub").textContent="could not reach the office"; return; }
+  const agents = off.agents || [];
+  AGENTS = agents;
+  renderChain();
+  if (!$("#orgchart").classList.contains("hide")) renderOrg();
+  // the running job: /api/office tells us WHICH job (off.job); /api/status has its topic and kind
+  const stt = await j("/api/status") || {};
+  const info = (stt.jobs || []).find(x => x.job_id === off.job) || {};
+  const chainRun = agents.filter(a => a.status === "running" && !a.desk);
+  const deskRun  = agents.filter(a => a.status === "running" && a.desk);
+  const lead = chainRun[0];
+  const cur = off.job ? { job_id: off.job, topic: info.topic, kind: info.kind, style: info.style,
+                          step: lead ? lead.name : (info.step || ""), reason: lead ? lead.reason : info.reason,
+                          running: chainRun.length > 0 } : null;
+  const names = chainRun.map(a => a.name).concat(deskRun.map(a => a.name + " (side task)"));
+  $("#nowsub").textContent = names.length ? names.join(", ") + " working"
+    : (cur ? "job " + cur.job_id + " is queued" : "idle \u2014 waiting for a job");
+
+  if(cur){
+    $("#nowjob").className = "";
+    $("#nowjob").innerHTML =
+      `<dl class="kv">
+         <dt>Job</dt><dd class="mono">${esc(cur.job_id)}</dd>
+         <dt>Topic</dt><dd>${esc(cur.topic || "")}</dd>
+         <dt>Kind</dt><dd>${esc(cur.kind||"text")} ${cur.style?`<span class="badge">${esc(cur.style)}</span>`:""}</dd>
+         <dt>Now</dt><dd>${esc(cur.step||"\u2014")} ${cur.reason?`<span style="color:var(--dim)">\u2014 ${esc(cur.reason)}</span>`:""}</dd>
+       </dl>`;
+  } else {
+    $("#nowjob").className = "empty";
+    $("#nowjob").textContent = "No job is running right now.";
+  }
+  $("#chain").innerHTML = agents.map(a=>{
+    const st = JOBSTATE[a.status] || "idle";
+    const n = a.stage ? "STAGE "+a.stage : "ALWAYS ON";
+    return `<div class="step ${st}"><div class="n">${esc(n)}</div><div class="a">${esc(a.name.split(" ")[0])}</div></div>`;
+  }).join("");
+}
+
+// ---------- conversations ----------
+async function comms(){
+  const t = await j("/api/comms/timeline" + (JOB?("?job="+encodeURIComponent(JOB)):"")) || {};
+  const rows = (t.messages||[]).slice().reverse();
+  const box = $("#commfeed");
+  if(!rows.length){ box.innerHTML = `<div class="empty">No agent activity recorded yet.</div>`; return; }
+  const f = rows.filter(m => FILTER==="all" ? true
+                   : FILTER==="reject" ? ["rejected","failed","dead"].includes(m.status)
+                   : m.sidecar);
+  if(!f.length){ box.innerHTML = `<div class="empty">Nothing matches this filter.</div>`; return; }
+  box.innerHTML = f.slice(0,120).map(m=>{
+    const cls = ["rejected","failed","dead"].includes(m.status) ? "rej"
+              : ["retry","failed"].includes(m.status) ? "rty"
+              : ["done","ok"].includes(m.status) ? "ok" : "";
+    const arrow = m.to ? `<div class="arw">&rarr;</div>` : `<div class="arw"></div>`;
+    const hand = m.hands_over ? `<span class="badge">hands over ${esc(m.hands_over)}</span>` : "";
+    return `<div class="cm ${cls}">
+      <div class="who"><div class="ag" style="color:${m.sidecar?"var(--busy)":"var(--fg)"}">${esc(m.agent)}</div>
+        <div class="tm">${esc(ap(m.time))}</div></div>
+      ${arrow}
+      <div class="what"><div class="v">${esc(m.verb)}${m.to?` → ${esc(m.to)}`:""}${hand}</div>
+        ${m.message?`<div class="m">${esc(m.message)}</div>`:""}</div>
+    </div>`;
+  }).join("");
+}
+
+// ---------- threads ----------
+async function threads(){
+  const t = await j("/api/comms/threads") || {};
+  const a = (t.agents||[]).slice().sort((x,y)=>y.says-x.says);
+  $("#threads").innerHTML = a.map(x=>`
+    <div class="cm" style="padding:8px 0">
+      <div class="who" style="width:112px"><div class="ag">${esc(x.name)}</div>
+        <div class="tm">${x.sidecar?"sidecar":"stage "+(x.stage||0)}</div></div>
+      <div class="arw"></div>
+      <div class="what"><div class="v">${x.says} message${x.says===1?"":"s"}
+        ${x.rejections?`<span style="color:var(--bad)"> · ${x.rejections} rejection${x.rejections===1?"":"s"}</span>`:""}
+        <span class="badge">${esc(x.last)}</span></div>
+        ${x.produces?`<div class="m">produces ${esc(x.produces)}</div>`:""}</div>
+    </div>`).join("");
+}
+
+// ---------- rails ----------
+async function rails(){
+  const r = await j("/api/rails") || {};
+  const rows = (r.rails||[]).map(x=>`
+    <div class="cm" style="padding:8px 0">
+      <div class="who" style="width:132px"><div class="ag">${esc(x.name)}</div></div>
+      <div class="arw"></div>
+      <div class="what"><div class="v" style="color:${x.on?"var(--ok)":"var(--warn)"}">${x.on?"ON":"OFF"}</div>
+        <div class="m">${esc(x.why)}</div></div>
+    </div>`).join("");
+  $("#rails").innerHTML = rows || `<div class="empty">No rails reported.</div>`;
+}
+
+// ---------- jobs ----------
+async function jobs(){
+  const d = await j("/api/recent") || {};
+  const list = (d.jobs || []).filter(x => x.topic);
+  if(!list.length){ $("#joblist").innerHTML = `<div class="empty">No jobs yet.</div>`; return; }
+  const FMT = {video:"Video", image:"Image + text", text:"Text only"};
+  $("#joblist").innerHTML = `<table class="mini"><thead><tr><th>Time</th><th>Topic</th><th>Format</th><th>Published to</th></tr></thead><tbody>` +
+    list.map(x=>`<tr><td class="muted" style="white-space:nowrap">${esc(new Date(x.started*1000).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}))}</td><td>${esc(x.topic)}</td>
+      <td>${esc(FMT[x.kind]||x.kind||"")}${x.style?` <span class="badge">${esc(x.style)}</span>`:""}</td>
+      <td>${x.published_to.length ? x.published_to.map(p=>`<span class="badge ok">${esc(p)}</span>`).join(" ") : (x.stock ? '<span class="muted">waiting in stock</span>' : '<span class="muted">not published</span>')}</td></tr>`).join("") +
+    `</tbody></table>`;
+}
+
+
+// ---------- go-live checklist (optional) ----------
+async function golive(){
+  const g = await j("/api/golive") || {};
+  const c = g.checks || [];
+  if(!c.length){ $("#golivesub").textContent="not run yet";
+    $("#golivebody").innerHTML=`<div class="empty">Not used in this copy.</div>`; return; }
+  const bad = c.filter(x=>!x.pass);
+  $("#golivesub").textContent = `${c.length-bad.length} of ${c.length} passed · last run ${g.ran||"?"}`;
+  $("#golivebody").innerHTML =
+    (bad.length ? bad.map(x=>`<div class="cm rej"><div class="who" style="width:30px"><div class="ag">${x.n}</div></div>
+        <div class="arw">&times;</div><div class="what"><div class="v">${esc(x.check)}</div>
+        <div class="m">${esc(String(x.detail).slice(0,220))}</div></div></div>`).join("")
+      : `<div class="cm ok"><div class="arw">&#10003;</div><div class="what"><div class="v">Every check passed</div></div></div>`) +
+    `<details style="margin-top:10px"><summary class="sub" style="cursor:pointer">show all ${c.length} checks</summary>` +
+    c.map(x=>`<div class="cm ${x.pass?"ok":"rej"}" style="padding:5px 0"><div class="arw">${x.pass?"&#10003;":"&times;"}</div>
+        <div class="what"><div class="m">${x.n}. ${esc(x.check)}</div></div></div>`).join("") + `</details>`;
+}
+
+// ---------- today's plan ----------
+async function plan(){
+  const l = await j("/api/live") || {};
+  const p = l.plan || [];
+  if(!p.length){ $("#planbody").innerHTML=`<div class="empty">No schedule slots found.</div>`; return; }
+  const nowm = new Date().getHours()*60+new Date().getMinutes();
+  $("#planbody").innerHTML = (l.paused?`<div class="sub" style="margin-bottom:8px">Posting is paused — slots below will NOT fire until you switch it live.</div>`:"") +
+    p.map(x=>{ const [h,m]=x.at.split(":").map(Number); const past=(h*60+m)<nowm;
+      return `<div class="cm" style="padding:7px 0;${past?"opacity:.55":""}">
+        <div class="who" style="width:88px"><div class="ag mono">${esc(ap(x.at))}</div></div><div class="arw"></div>
+        <div class="what"><div class="v">${esc(x.kind)} ${x.style?`<span class="badge">${esc(x.style)}</span>`:""}</div>
+        <div class="m">${esc(x.why||"")}</div></div></div>`; }).join("");
+}
+
+// ---------- this PC ----------
+async function sysmon(){
+  const s = await j("/api/system") || {};
+  const rows = (s.services||[]).map(x=>`<div class="pill" style="margin:0 6px 6px 0"><span class="dot ${x.up?"ok":"bad"}"></span><b>${esc(x.name)}</b><small>:${x.port} ${x.up?"up":"DOWN"}</small></div>`).join("");
+  const g = s.gpu ? `<dt>GPU</dt><dd>${esc(s.gpu.name)} · ${s.gpu.util_pct}% busy · ${s.gpu.temp_c}°C · ${Math.round(s.gpu.mem_used_mb/1024*10)/10}/${Math.round(s.gpu.mem_total_mb/1024*10)/10} GB VRAM</dd>` : "";
+  const d = s.disk ? `<dt>AutoPost folder</dt><dd>${s.disk.autopost_gb != null ? s.disk.autopost_gb + " GB used" : "measuring..."} (the whole PC has ${s.disk.free_gb} GB free)</dd>` : "";
+  const u = s.uptime_h!=null ? `<dt>Up for</dt><dd>${s.uptime_h} hours since last boot</dd>` : "";
+  $("#sysbody").innerHTML = `<div style="margin-bottom:8px">${rows}</div><dl class="kv">${g}${d}${u}</dl>`;
+}
+
+// ---------- connections ----------
+async function conns(){
+  const s = await j("/api/settings") || {};
+  const allowed = (s.department||{}).allowed_platforms||[];
+  $("#allowed").textContent = allowed.length + " of " + ((s.connections||[]).length) + " platforms switched on";
+  const NAME = {socialai:"Public blog", telegram:"Telegram", bluesky:"Bluesky", discord:"Discord", youtube:"YouTube", tiktok:"TikTok", mastodon:"Mastodon", x:"X", twitter:"X", facebook:"Facebook", threads:"Threads", linkedin:"LinkedIn", wordpress:"WordPress", webhook:"Webhook"};
+  const NOTE = {mastodon:"account suspended - appeal needed", x:"needs the paid plan to post", twitter:"needs the paid plan to post", tiktok:"uploads are private until you publish them in the app", socialai:"blog.your-domain.example"};
+  const tile = c => {
+    const on = allowed.includes(c.platform);
+    const st = !c.connected ? ["off","Not connected"] : on ? ["live","Live"] : ["held","Switched off"];
+    return `<div class="ct ${st[0]}"><div class="cn">${esc(NAME[c.platform]||c.platform)}</div>
+      <div class="cs"><span class="dot ${st[0]==="live"?"ok":"warn"}"></span>${st[1]}</div>
+      <div class="cx">${esc(NOTE[c.platform]||"")}</div></div>`;
+  };
+  const list = (s.connections||[]).slice().sort((x,y)=> (allowed.includes(y.platform)&&y.connected) - (allowed.includes(x.platform)&&x.connected));
+  $("#connbody").innerHTML = list.length ? `<div class="ctg">${list.map(tile).join("")}</div>` : `<div class="empty">No platforms configured.</div>`;
+}
+
+// ---------- published posts ----------
+async function posts(){
+  const [p, st] = await Promise.all([j("/api/posts?limit=15"), j("/api/stats")]);
+  if(st) $("#poststats").textContent = `last 24 h: ${st.generated||0} generated · ${st.published||0} published`;
+  if(!Array.isArray(p) || !p.length){ $("#postbody").innerHTML=`<div class="empty">Nothing published yet.</div>`; return; }
+  $("#postbody").innerHTML = p.map(x=>`<div class="cm ${x.status==="published"?"ok":""}" style="padding:7px 0">
+      <div class="who" style="width:118px"><div class="ag mono">${esc(ap(x.time))}</div></div><div class="arw"></div>
+      <div class="what"><div class="v">${esc(x.title)} <span class="badge">${esc(x.kind||"")}</span>
+      <span class="badge">${x.status==="published"?"published":"held"} · ${x.platforms} destination${x.platforms===1?"":"s"}</span></div></div></div>`).join("");
+}
+
+// ---------- department identity (so a second department needs no code change) ----------
+async function brand(){
+  const d = await j("/api/departments");
+  if(!d || !d.active) return;
+  $("#brand").innerHTML = `${esc(d.active.short)} <span>&mdash; ${esc(d.active.name.toLowerCase())}</span>`;
+  const extra = (d.all||[]).filter(x=>!x.active);
+  if(extra.length){
+    const nav = document.querySelector(".nav");
+    nav.insertAdjacentHTML("afterbegin",
+      `<span class="pill" style="padding:4px 10px"><small>${esc(extra.length)} more department${extra.length>1?"s":""} registered</small></span>`);
+  }
+}
+
+// ---------- organisation ----------
+// 14 post-team agents + 4 always-on desks. Colours = live state from /api/office (database).
+const LANES = [
+  {t:"1 · Open the job",            g:[["intake",""],["arjun","research"]]},
+  {t:"2 · Plan the post",           g:[["maya",""],["sophie",""],["daniel","visual"],["leo",""]]},
+  {t:"3 · Check the plan",          g:[["oliver","AUDIT"],["isabella","GATE"]]},
+  {t:"4 · Make it and inspect it",  g:[["noah","GATE"],["grace","AUDIT"]]},
+  {t:"5 · Publish",                 g:[["ella","GATE"]]},
+  {t:"6 · Prove it is live",        g:[["victoria","AUDIT"]]},
+  {t:"7 · Final report",            g:[["helena","HEAD"]]}
+];
+const SIDECARS = ["dispatcher","idle_manager","supervisor","retention"];
+const SIDE_WHY = {dispatcher:"the clock: starts each of the 8 daily posts",
+  idle_manager:"makes posts ahead of time when the machine is free",
+  supervisor:"watches everything, unsticks failed jobs",
+  retention:"deletes work files 7 days after a confirmed post"};
+const TEAMS = [
+  {t:"Planning",   c:"k1", m:[["intake","opens the job, picks the topic"],["arjun","finds and checks the facts"]]},
+  {t:"Creative",   c:"k2", m:[["maya","creative director"],["sophie","script, facts only"],["daniel","scenes and characters"],["leo","emotion and music"]]},
+  {t:"Quality",    c:"k3", m:[["oliver","audits the plan"],["isabella","edits, gives the go-ahead"]]},
+  {t:"Production", c:"k5", m:[["noah","generates video / image / text"],["grace","inspects the result"]]},
+  {t:"Publishing", c:"k4", m:[["ella","posts to each platform"],["victoria","checks every post is live"]]}
+];
+
+let AGENTS = [];
+function byKey(k){ return AGENTS.find(a=>a.key===k) || {key:k,name:k.toUpperCase().replace("_"," "),status:"idle",role:""}; }
+function stOf(a){ return JOBSTATE[a.status] || "idle"; }
+const STLBL = {run:"working now",done:"done",idle:"waiting",retry:"retrying",dead:"stopped",skip:"skipped"};
+
+function personHTML(a, gate){
+  const st = stOf(a);
+  const g = gate ? `<div class="gate">${esc(gate)}</div>` : "";
+  return `<div class="person ${st}">${g}
+    <div class="pn"><span class="sd ${st}"></span>${esc(a.name)}</div>
+    <div class="pr">${esc(STLBL[st]||a.status)}${a.retry_in?` · retry in ${a.retry_in}s`:""}</div>
+    ${a.reason?`<div class="pp">${esc(String(a.reason).slice(0,70))}</div>`:""}
+  </div>`;
+}
+function legendHTML(){
+  const n = AGENTS.filter(a=>stOf(a)==="run").length;
+  return `<div class="lgd"><span><i class="sd run"></i>working now</span><span><i class="sd done"></i>done / healthy</span>
+    <span><i class="sd idle"></i>waiting for its trigger</span><span><i class="sd retry"></i>retrying</span>
+    <span><i class="sd dead"></i>stopped</span><b>${n} working right now</b></div>`;
+}
+
+function renderChain(){
+  $("#orgchain").innerHTML = legendHTML() + LANES.map((l,i)=>
+    `<div class="lane"><div class="lane-h">${esc(l.t)}</div><div class="people">` +
+    l.g.map(([k,gate])=>personHTML(byKey(k), gate)).join("") + `</div></div>` +
+    (i<LANES.length-1?`<div class="flowto">&darr;</div>`:"")
+  ).join("") + `<div class="side"><div class="lbl">ALWAYS ON &mdash; never part of one job</div>` +
+    SIDECARS.map(k=>personHTML(byKey(k),"")).join("") + `</div>`;
+}
+
+function renderOrg(){
+  const m = ([k,why]) => { const a=byKey(k), st=stOf(a);
+    return `<div class="om ${st}"><span class="sd ${st}"></span><b>${esc(a.name)}</b><small>${esc(why)}</small>
+      ${a.reason&&st!=="idle"?`<em>${esc(String(a.reason).slice(0,52))}</em>`:""}</div>`; };
+  const team = t => `<div class="team ${t.c}"><div class="th">${t.t}</div>${t.m.map(m).join("")}</div>`;
+  const h = byKey("helena");
+  $("#orgchart").innerHTML = legendHTML() + `
+   <div class="otop"><div class="obox own"><b>Mr Blank</b><small>owner &middot; gets ONE Telegram message per post</small></div></div>
+   <div class="vline"></div>
+   <div class="otop"><div class="obox head ${stOf(h)}"><span class="sd ${stOf(h)}"></span><b>HELENA</b><small>Department Head &middot; final audit &middot; reports to the owner</small></div></div>
+   <div class="vline"></div>
+   <div class="hline"></div>
+   <div class="teams">${TEAMS.map(team).join("")}</div>
+   <div class="opsrow"><div class="lbl">OPERATIONS &mdash; always on, report straight to the owner</div>
+     <div class="team k1 wide"><div class="th">SUPERVISOR desk</div>
+       ${m(["supervisor",SIDE_WHY.supervisor])}
+       <div class="subs">${["dispatcher","idle_manager","retention"].map(k=>m([k,SIDE_WHY[k]])).join("")}</div></div></div>
+   <div class="note2" style="margin-top:12px">Work flows left to right through the teams (Planning, Creative, Quality, Production, Publishing). Rejections go back to the exact agent who made the mistake. HELENA closes every job.</div>`;
+}
+
+function renderArch(){
+  const step = (n,who,what,k) => `<div class="stp ${k||""}"><i>${n}</i><div><b>${who}</b><small>${what}</small></div></div>`;
+  const col = (cls,title,sub,body) => `<div class="sys ${cls}"><div class="sh"><b>${title}</b><small>${sub}</small></div>${body}</div>`;
+  const dn = '<div class="dn">&darr;</div>';
+  $("#orgarch").innerHTML = `
+  <div class="archtop">
+    <div class="at"><b>Trigger</b>Clock &middot; 8 posts a day</div><span>+</span>
+    <div class="at"><b>Trigger</b>Free machine &middot; every 10 min</div><span>+</span>
+    <div class="at"><b>Trigger</b>Every hour</div>
+    <small>Three triggers start three cooperating systems. The normal schedule always wins.</small>
+  </div>
+  <div class="syss">
+    ${col("s1","SYSTEM 1 &middot; Normal flow","the daily schedule",
+      step(1,"DISPATCHER","slot is due: 8:45 image &middot; 10:15 text &middot; 12:00 video &middot; 2:30 image &middot; 5:30 text &middot; 7:30 image &middot; 9:30 text &middot; 11:00 cartoon","k1")+dn+
+      step(2,"Waiting list has a post?","YES &rarr; jump to step 7 &middot; NO &rarr; make one now","k5")+dn+
+      step(3,"NADIA + ARJUN","best topic, duplicate check, real source facts","k2")+dn+
+      step(4,"MAYA &rarr; SOPHIE &rarr; DANIEL &rarr; LEO","brief, script, scenes, emotion","k2")+dn+
+      step(5,"OLIVER &rarr; ISABELLA &rarr; NOAH &rarr; GRACE","audit, edit, go-ahead, generate, inspect","k3")+dn+
+      step(6,"ELLA","publishes: blog &middot; Telegram &middot; Bluesky &middot; Discord &middot; YouTube &middot; TikTok","k4")+dn+
+      step(7,"VICTORIA &rarr; HELENA","verify live, final audit, ONE Telegram message","k3"))}
+    ${col("s2","SYSTEM 2 &middot; Idle-time flow","posts made ahead of time",
+      step(1,"SUPERVISOR (every 10 min)","automation on? nothing running? GPU free?","k1")+dn+
+      step(2,"Which kind is below 5?","video first &middot; then image+text &middot; then text","k5")+dn+
+      step(3,"Enough free time?","video 120 min &middot; image 30 &middot; text 20 before the next slot","k3")+dn+
+      step(4,"Topic ready?","NO &rarr; ARJUN scouts first &middot; YES &rarr; go on","k3")+dn+
+      step(5,"NADIA ... GRACE","the SAME full flow as System 1","k2")+dn+
+      step(6,"HOLD after GRACE","copied to the waiting list (STOCK)","k5")+dn+
+      step(7,"At its slot","DISPATCHER re-checks it, ELLA publishes in seconds","k4"))}
+    ${col("s3","SYSTEM 3 &middot; Clean-up flow","no garbage left behind",
+      step(1,"RETENTION (every hour)","looks at every finished job","k1")+dn+
+      step(2,"Published 7+ days ago?","only then is it touched","k3")+dn+
+      step(3,"Log first","every deletion is written to retention.log BEFORE it happens","k3")+dn+
+      step(4,"Delete","work files, final files, logs older than 14 days","k4")+
+      `<div class="never"><b>NEVER deleted</b>anything not yet published &middot; failed jobs waiting for retry &middot; waiting-list posts &middot; database &middot; config &middot; scripts &middot; memory</div>`)}
+  </div>
+  <div class="guard">
+    <b>Safety net, always on:</b> SUPERVISOR finds stuck jobs and heals them (2 retries, then parks them and tells the owner) &middot;
+    GUARD task restarts the dashboard, engine and Ollama every 10 min &middot; no invented facts (SOPHIE, OLIVER, GRACE all check) &middot; a stuck job never blocks the next slot.
+  </div>`;
+}
+
+document.querySelectorAll("#otabs button").forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll("#otabs button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    const org = b.dataset.v === "org", arch = b.dataset.v === "arch";
+    $("#orgchart").classList.toggle("hide", !org);
+    $("#orgarch").classList.toggle("hide", !arch);
+    $("#orgchain").classList.toggle("hide", org || arch);
+    if(arch) renderArch(); else if(org) renderOrg(); else renderChain();
+  };
+});
+
+// ---------- boot ----------
+$("#refresh").onclick = () => { pills(); now(); comms(); threads(); rails(); jobs(); golive(); plan(); sysmon(); conns(); posts(); };
+document.querySelectorAll("#ftabs button").forEach(b=>{
+  b.onclick = () => { document.querySelectorAll("#ftabs button").forEach(x=>x.classList.remove("on"));
+                      b.classList.add("on"); FILTER=b.dataset.f; comms(); };
+});
+pills(); now(); comms(); threads(); rails(); jobs(); brand(); golive(); plan(); sysmon(); conns(); posts(); stockBoard();
+setInterval(()=>{ pills(); now(); comms(); jobs(); sysmon(); }, 8000);
+setInterval(()=>{ golive(); plan(); conns(); posts(); stockBoard(); }, 60000);
+
+// keep the same place after a refresh: scroll position + the chosen tabs
+(function keepPlace(){
+  try{
+    const k = "ap_scroll_" + location.pathname;
+    const y = sessionStorage.getItem(k);
+    if (y) setTimeout(() => window.scrollTo(0, +y), 900);
+    window.addEventListener("scroll", () => sessionStorage.setItem(k, window.scrollY), {passive:true});
+    ["ftabs","otabs"].forEach(id => {
+      const box = document.getElementById(id); if (!box) return;
+      const key = "ap_tab_" + id, saved = localStorage.getItem(key);
+      if (saved){ const b = box.querySelector('[data-f="' + saved + '"],[data-v="' + saved + '"]'); if (b) b.click(); }
+      box.addEventListener("click", e => { const b = e.target.closest("button"); if (b) localStorage.setItem(key, b.dataset.f || b.dataset.v); });
+    });
+  }catch(e){}
+})();
+</script></body></html>

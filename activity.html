@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posts & Activity - AUTOPOST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px 20px;
+            border-bottom: 4px solid #3498db;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ecf0f1;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .post-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .post-card.published { border-left-color: #27ae60; }
+        .post-card.draft { border-left-color: #f39c12; }
+        .post-card.failed { border-left-color: #e74c3c; }
+
+        .post-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .post-meta {
+            font-size: 12px;
+            color: #7f8c8d;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .status-published { background: #ecfdf5; color: #27ae60; }
+        .status-draft { background: #fefce8; color: #f39c12; }
+        .status-failed { background: #fee2e2; color: #e74c3c; }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .action-btn-primary { background: #3498db; color: white; }
+        .action-btn-secondary { background: #ecf0f1; color: #2c3e50; }
+        .action-btn-danger { background: #fee2e2; color: #e74c3c; }
+
+        @media (max-width: 768px) {
+            .post-card { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/" class="back-link">← Back</a>
+            <h1>Posts & Activity</h1>
+            <p>Manage your generated posts • All deletions are logged</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="controls">
+                <input type="text" class="search-box" placeholder="Search posts..." id="searchBox" onkeyup="filterPosts()">
+                <button class="filter-btn active" onclick="filterByStatus('all')">All</button>
+                <button class="filter-btn" onclick="filterByStatus('published')">✅ Published</button>
+                <button class="filter-btn" onclick="filterByStatus('draft')">📝 Draft</button>
+                <button class="filter-btn" onclick="filterByStatus('failed')">❌ Failed</button>
+            </div>
+
+            <div id="postsList">
+                <div class="post-card published" data-status="published" data-search="meditation healing">
+                    <div>
+                        <div class="post-title">Energy Healing and Chakra Balance</div>
+                        <div class="post-meta">
+                            <span>📝 Text</span>
+                            <span>🕐 Today 14:32</span>
+                            <span>👁️ 1.2K views</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <span class="status-badge status-published">✅ Published</span>
+                        <button class="action-btn action-btn-secondary">View</button>
+                        <button class="action-btn action-btn-danger" onclick="deletePost(this, 'Energy Healing and Chakra Balance', 'text')">Delete</button>
+                    </div>
+                </div>
+
+                <div class="post-card published" data-status="published" data-search="gratitude mindfulness">
+                    <div>
+                        <div class="post-title">Daily Gratitude Practice for Inner Peace</div>
+                        <div class="post-meta">
+                            <span>🖼️ Image</span>
+                            <span>🕐 Today 12:15</span>
+                            <span>👁️ 856 views</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <span class="status-badge status-published">✅ Published</span>
+                        <button class="action-btn action-btn-secondary">View</button>
+                        <button class="action-btn action-btn-danger" onclick="deletePost(this, 'Daily Gratitude Practice for Inner Peace', 'image')">Delete</button>
+                    </div>
+                </div>
+
+                <div class="post-card draft" data-status="draft" data-search="self-love">
+                    <div>
+                        <div class="post-title">Self-Love and Self-Compassion Journey</div>
+                        <div class="post-meta">
+                            <span>📝 Text</span>
+                            <span>🕐 Today 10:20</span>
+                            <span>📊 Draft</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <span class="status-badge status-draft">📝 Draft</span>
+                        <button class="action-btn action-btn-primary" onclick="publishDraft(this)">Publish Now</button>
+                        <button class="action-btn action-btn-danger" onclick="deletePost(this, 'Self-Love and Self-Compassion Journey', 'text')">Delete</button>
+                    </div>
+                </div>
+
+                <div class="post-card failed" data-status="failed" data-search="anxiety stress">
+                    <div>
+                        <div class="post-title">Stress Relief and Anxiety Management</div>
+                        <div class="post-meta">
+                            <span>🖼️ Image</span>
+                            <span>🕐 Yesterday 16:45</span>
+                            <span>❌ Failed audit</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <span class="status-badge status-failed">❌ Failed</span>
+                        <button class="action-btn action-btn-primary" onclick="retryPost(this)">Retry</button>
+                        <button class="action-btn action-btn-danger" onclick="deletePost(this, 'Stress Relief and Anxiety Management', 'image')">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deletion Log -->
+        <div class="card">
+            <h3 style="margin-bottom: 15px; color: #2c3e50;">📋 Deletion & Activity Log</h3>
+            <div id="deletion-log" style="font-size: 12px; max-height: 300px; overflow-y: auto;">
+                <div style="color: #95a5a6; text-align: center; padding: 20px;">No deletions logged yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFilter = 'all';
+        let deletionLog = JSON.parse(localStorage.getItem('deletionLog')) || [];
+
+        function logDeletion(title, type) {
+            const entry = {
+                timestamp: new Date().toLocaleString(),
+                action: 'DELETED',
+                type: type,
+                title: title,
+                status: 'Removed from storage'
+            };
+            deletionLog.unshift(entry);
+            localStorage.setItem('deletionLog', JSON.stringify(deletionLog));
+            updateDeletionLog();
+        }
+
+        function updateDeletionLog() {
+            const logDiv = document.getElementById('deletion-log');
+            if (deletionLog.length === 0) {
+                logDiv.innerHTML = '<div style="color: #95a5a6; text-align: center; padding: 20px;">No activity logged yet</div>';
+                return;
+            }
+
+            logDiv.innerHTML = deletionLog.map(entry => `
+                <div style="padding: 10px 0; border-bottom: 1px solid #ecf0f1;">
+                    <div style="font-weight: 600; color: #2c3e50;">[${entry.timestamp}] ${entry.action}</div>
+                    <div style="color: #7f8c8d; margin-top: 3px;">
+                        📄 ${entry.type.toUpperCase()} • ${entry.title}
+                    </div>
+                    <div style="color: #95a5a6; font-size: 11px;">Status: ${entry.status}</div>
+                </div>
+            `).join('');
+        }
+
+        function deletePost(btn, title, type) {
+            if (confirm(`Delete "${title}"?\n\nThis will:\n✓ Remove from storage\n✓ Log the deletion\n✓ NOT be recoverable`)) {
+                logDeletion(title, type);
+                btn.closest('.post-card').style.opacity = '0.5';
+                btn.closest('.post-card').style.pointerEvents = 'none';
+                btn.textContent = '✓ Deleted';
+            }
+        }
+
+        function publishDraft(btn) {
+            const card = btn.closest('.post-card');
+            card.classList.remove('draft');
+            card.classList.add('published');
+            const badge = card.querySelector('.status-badge');
+            badge.textContent = '✅ Published';
+            badge.className = 'status-badge status-published';
+            btn.textContent = 'Published';
+            btn.disabled = true;
+            logDeletion(card.querySelector('.post-title').textContent, 'PUBLISHED');
+        }
+
+        function retryPost(btn) {
+            btn.textContent = 'Retrying...';
+            setTimeout(() => {
+                const card = btn.closest('.post-card');
+                card.classList.remove('failed');
+                card.classList.add('published');
+                btn.textContent = '✓ Published';
+            }, 2000);
+        }
+
+        function filterByStatus(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            filterPosts();
+        }
+
+        function filterPosts() {
+            const searchText = document.getElementById('searchBox').value.toLowerCase();
+            document.querySelectorAll('.post-card').forEach(card => {
+                const status = card.dataset.status;
+                const search = card.dataset.search.toLowerCase();
+                const match = (currentFilter === 'all' || status === currentFilter) &&
+                              (searchText === '' || search.includes(searchText));
+                card.style.display = match ? 'grid' : 'none';
+            });
+        }
+
+        // Load deletion log on page load
+        document.addEventListener('DOMContentLoaded', updateDeletionLog);
+    </script>
+</body>
+</html>

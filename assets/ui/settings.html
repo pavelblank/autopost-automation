@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en"><head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings · AutoPost</title>
+<link rel="stylesheet" href="/assets/ui/app.css">
+<style>.toggle{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.toggle:last-child{border:0}
+.toggle .tt{flex:1;min-width:0}
+.toggle .tn{font-size:14px;font-weight:600}
+.toggle .td{font-size:12.5px;color:var(--dim2);margin-top:2px}
+.sw{position:relative;width:42px;height:24px;border-radius:999px;background:var(--panel2);
+    border:1px solid var(--line);cursor:pointer;flex:none;transition:.2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+           background:var(--dim2);transition:.2s}
+.sw.on{background:rgba(63,185,80,.2);border-color:var(--ok)}
+.sw.on::after{left:20px;background:var(--ok)}
+.sw.danger{background:rgba(248,81,73,.18);border-color:var(--bad)}
+.sw.danger::after{background:var(--bad)}
+.sw.danger.on{background:rgba(248,81,73,.3);border-color:var(--bad)}
+.sw.danger.on::after{background:var(--bad)}
+</style></head><body>
+
+<header class="top"><div class="hd">
+  <div class="logo" id="brand">AutoPost</div>
+  <nav class="nav">
+    <a href="/">Overview</a><a href="/posts">Posts</a><a href="/research">Research</a><a href="/conversations">Conversations</a><a href="/office">Agent Office</a><a href="/settings" class="on">Settings</a>
+  </nav>
+</div></header>
+
+<div class="wrap">
+  <div class="pills" id="pills"></div>
+
+  <div class="notice warn" id="safety">
+    <b>Local only.</b> Nothing here posts to a live account while
+    <span class="mono">live_publish</span> is off and the only destination is the local blog.
+  </div>
+
+  <div class="grid2">
+    <!-- SAFETY -->
+    <div class="card">
+      <div class="ch"><h2>Safety rails</h2><span class="sub">what the system is allowed to do</span></div>
+      <div class="cb" id="rails"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- BEHAVIOUR -->
+    <div class="card">
+      <div class="ch"><h2>Behaviour</h2><span class="sub">applies on the next scheduler tick</span></div>
+      <div class="cb">
+        <div class="field">
+          <label class="fl">Approval mode</label>
+          <select id="approval">
+            <option value="auto">auto — publishes without waiting for you</option>
+            <option value="manual">manual — MARCUS waits for your approval</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">Local AI model</label>
+          <select id="model"></select>
+        </div>
+        <div class="field" style="margin:0">
+          <label class="fl">Destinations allowed</label>
+          <div class="mono" id="allowed" style="font-size:13px;color:var(--dim)">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE STATUS -->
+  <div class="card" id="live">
+    <div class="ch">
+      <h2>Live status</h2>
+      <span class="sub">everything posts to the real accounts &mdash; there is no local mode</span>
+      <div class="right"><span id="live-badge"></span></div>
+    </div>
+    <div class="cb">
+      <div class="notice" id="live-note"></div>
+      <div id="live-auto" style="margin:14px 0"></div>
+      <div id="plan" style="margin-bottom:6px"></div>
+    </div>
+  </div>
+
+  <!-- CONNECTIONS -->
+  <div class="card">
+    <div class="ch"><h2>Connections</h2>
+      <span class="sub">secrets are never sent to this page — only whether one is stored</span>
+      <div class="right"><button class="btn" onclick="load()">Refresh</button></div>
+    </div>
+    <div class="cb">
+      <table>
+        <thead><tr><th>Platform</th><th>State</th><th>Stored</th><th>Account</th></tr></thead>
+        <tbody id="conns"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LIMITS -->
+  <div class="card">
+    <div class="ch"><h2>Posting limits</h2>
+      <span class="sub">a post over its limit is never truncated — it is held back with a reason</span></div>
+    <div class="cb"><table>
+      <thead><tr><th>Platform</th><th>Characters</th><th>Per day</th></tr></thead>
+      <tbody id="limits"></tbody>
+    </table></div>
+  </div>
+
+  <!-- DEPARTMENT -->
+  <div class="card">
+    <div class="ch"><h2>Department</h2><span class="sub">AutoPost is one department; more can be added</span></div>
+    <div class="cb" id="depts"><div class="empty">Loading…</div></div>
+  </div>
+
+  <footer>AutoPost · settings · <a href="/">back to overview</a></footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function j(u){ try{ const r=await fetch(u,{cache:"no-store"}); return await r.json(); }catch(e){ return null; } }
+
+function toast(m,ok){
+  const t=$("#toast"); t.textContent=m; t.className="toast on "+(ok?"ok":"bad");
+  setTimeout(()=>t.className="toast",2600);
+}
+async function setRule(key,val){
+  const body=new URLSearchParams(); body.set("key",key);
+  if(typeof val==="boolean"){ body.set("bool", val?"1":"0"); } else { body.set("value",val); }
+  const r=await fetch("/set-rule",{method:"POST",body});
+  const res=await r.json().catch(()=>({}));
+  toast(res.msg || (r.ok?"saved":"could not save"), r.ok);
+  if(r.ok){ load(); pills(); }
+}
+
+let DATA={};
+async function load(){
+  const s=await j("/api/settings"); if(!s) return; DATA=s;
+
+  // behaviour
+  $("#approval").value=s.rules.approval_mode||"auto";
+  const m=$("#model"); m.innerHTML=(s.models||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("")
+              ||'<option>no local model</option>';
+  m.value=s.rules.ollama_model||"";
+  $("#allowed").textContent=(s.department.allowed_platforms||[]).join(", ")||"(none)";
+
+  // connections
+  $("#conns").innerHTML=(s.connections||[]).map(c=>{
+    const st=c.connected?'<span class="badge ok">connected</span>':'<span class="badge">not connected</span>';
+    const acc=(c.fields.find(f=>f==="account")||c.fields.find(f=>f==="handle")||"") ;
+    return `<tr><td><b>${esc(c.platform)}</b></td><td>${st}</td>
+      <td class="mono muted" style="font-size:12px">${esc((c.fields||[]).filter(f=>f.includes(":")).join(" "))||"—"}</td>
+      <td class="muted">${acc?"✓":"—"}</td></tr>`;
+  }).join("")||'<tr><td colspan="4" class="empty">none</td></tr>';
+
+  // limits
+  $("#limits").innerHTML=Object.keys(s.rules.limits||{}).map(k=>{
+    const lim=s.rules.limits[k]||{};
+    return `<tr><td><b>${esc(k)}</b></td><td class="mono">${lim.per_day??"—"} per day cap</td>
+      <td class="muted">${esc(lim.note||"")}</td></tr>`;
+  }).join("")||'<tr><td colspan="3" class="empty">none</td></tr>';
+
+  // departments
+  const d=await j("/api/departments");
+  if(d&&d.all){
+    $("#depts").innerHTML = `<table><thead><tr><th>Key</th><th>Name</th><th>Agents</th>
+      <th>Destinations</th><th>State</th></tr></thead><tbody>` +
+      d.all.map(x=>`<tr><td class="mono">${esc(x.key)}</td><td><b>${esc(x.name)}</b>
+        <div class="muted" style="font-size:12px">${esc(x.tagline||"")}</div></td>
+        <td class="mono">${x.agents??"—"}</td><td class="mono">${esc((x.platforms||[]).join(", "))}</td>
+        <td>${x.active?'<span class="badge busy">active</span>':'<span class="badge">ready</span>'}</td></tr>`).join("")
+      + `</tbody></table>
+      <div class="notice" style="margin:16px 0 0">
+        Adding a second department needs <span class="mono">config/departments.json</span> plus its own
+        <span class="mono">AGENT_SPEC.json</span> and its own rules block. The engine reads its chain
+        from a spec, so nothing in <span class="mono">department_queue.py</span> changes.
+      </div>`;
+    $("#brand").innerHTML = `${esc(d.active.short)} <span>· ${esc(d.active.name.toLowerCase())}</span>`;
+  }
+  rails();
+}
+
+async function rails(){
+  const r=await j("/api/rails"); if(!r) return;
+  $("#rails").innerHTML=(r.rails||[]).map(x=>`
+    <div class="toggle">
+      <div class="tt"><div class="tn">${esc(x.name)}</div><div class="td">${esc(x.why)}</div></div>
+      <div class="sw ${x.on?"on":""} ${/paused|live/i.test(x.name)?"danger":""}"
+           data-key="${esc( (/Posting paused/i.test(x.name)?"paused":/auto-queue/i.test(x.name)?"department.enabled":
+                            /Live publishing/i.test(x.name)?"department.live_publish":
+                            /Retention/i.test(x.name)?"retention.enabled":"") )}"
+           data-on="${x.on?1:0}"></div>
+    </div>`).join("");
+  document.querySelectorAll("#rails .sw").forEach(sw=>{
+    sw.onclick=async()=>{
+      const key=sw.dataset.key; if(!key) return;
+      const val=sw.dataset.on!=="1";
+      await setRule(key,val);
+    };
+  });
+}
+
+async function pills(){
+  const s=await j("/api/status")||{}; const o=await j("/api/office")||{};
+  const poller=(o.poller||{}).alive;
+  $("#pills").innerHTML=[
+    ["Dashboard","up","ok"],["Ollama",s.ollama_ok?"up":"down",s.ollama_ok?"ok":"bad"],
+    ["Trigger poller",poller?"watching":"stopped",poller?"busy":"warn"],
+    ["Department",s.department_on?"ON":"off",s.department_on?"warn":"ok"],
+    ["Posting",s.paused?"PAUSED":"live",s.paused?"ok":"bad"],
+  ].map(([n,v,c])=>`<div class="pill"><span class="dot ${c}"></span><b>${esc(n)}</b><small>${esc(v)}</small></div>`).join("");
+}
+
+async function live(){
+  const d = await j("/api/live"); if(!d) return;
+  const st = await j("/api/status") || {};
+  const on = !d.paused && !!d.department_enabled;
+  $("#live-badge").innerHTML = on ? '<span class="badge bad">LIVE &middot; AUTOMATION ON</span>' : '<span class="badge warn">LIVE &middot; AUTOMATION PAUSED</span>';
+  $("#live-note").innerHTML =
+    '<b style="color:var(--bad)">LIVE.</b> Posts go to the real accounts: the public blog <span class="mono">'+esc((d.live_url||"https://blog.your-domain.example").replace("https://",""))+
+    '</span> and <span class="mono">'+esc((d.allowed||[]).filter(x=>x!=="socialai").join(", ")||"no other platform")+'</span>. '+
+    (on ? 'The schedule runs on its own, and idle time is used to make posts ahead of time.'
+        : 'Automation is paused: nothing starts by itself until you turn it on. Manual jobs still post live.');
+  $("#live-auto").innerHTML =
+    '<div class="toggle"><div class="tt"><div class="tn">Automation (daily schedule + idle-time stock)</div>'+
+    '<div class="td">'+(on ? "ON - posts are made and published on schedule" : "PAUSED - nothing runs by itself")+'</div></div>'+
+    '<span class="badge '+(on?"ok":"")+'" style="margin-right:10px">'+(on?"ON":"paused")+'</span>'+
+    '<button class="btn '+(on?"":"primary")+'" id="btn-auto">'+(on?"Pause automation":"Turn automation on")+'</button></div>';
+  $("#btn-auto").onclick = async () => {
+    for (const [step, val] of (on ? [["unpause","0"]] : [["department","1"],["unpause","1"]])){
+      const body = new URLSearchParams(); body.set("step", step); body.set("bool", val);
+      await fetch("/go-live", {method:"POST", body});
+    }
+    toast(on ? "automation paused" : "automation ON", true);
+    live(); rails(); pills();
+  };
+  const KIND = {video:["Video","var(--bad)"], text:["Text","var(--dim)"], image:["Image","var(--ok)"]};
+  const plan = d.plan || [];
+  const nvid = plan.filter(p=>p.kind==="video").length;
+  const ntxt = plan.filter(p=>p.kind==="text").length;
+  const nim  = plan.filter(p=>p.kind==="image").length;
+  $("#plan").innerHTML =
+    `<div class="sub" style="margin:14px 0 8px;font-weight:600">The daily plan &mdash; ${plan.length} posts a day</div>`
+    + `<div class="pills" style="margin-bottom:10px">
+         <div class="pill"><span class="dot bad"></span><b>Video</b><small>${nvid}</small></div>
+         <div class="pill"><span class="dot"></span><b>Text</b><small>${ntxt}</small></div>
+         <div class="pill"><span class="dot ok"></span><b>Image</b><small>${nim}</small></div>
+       </div>`
+    + `<table class="mini"><thead><tr><th style="width:62px">Time</th><th style="width:96px">Type</th>
+         <th>Why this hour</th></tr></thead><tbody>`
+    + plan.map(p=>{
+        const k = KIND[p.kind] || [p.kind,""];
+        const style = p.style ? `<span class="mono" style="color:var(--dim2);font-size:11px">${esc(p.style)}</span>` : "";
+        return `<tr><td class="mono" style="font-weight:600">${esc(p.at)}</td>`
+             + `<td><span class="badge" style="color:${k[1]};border-color:${k[1]}55">${esc(k[0])}</span> ${style}</td>`
+             + `<td class="muted" style="font-size:12.5px">${esc(p.why)}</td></tr>`;
+      }).join("")
+    + `</tbody></table>`
+    + `<p class="muted" style="font-size:12px;margin-top:8px">Times come from Buffer's 2026 study of
+       52 million posts. The two video hours are the ones you chose. Closest pair is
+       1h30m apart, so nothing collides.</p>`;
+}
+
+/* ---------- who is signed in / log out ---------- */
+async function whoami(){
+  try{
+    const r = await fetch("/api/whoami",{cache:"no-store"});
+    const d = await r.json();
+    if (d && d.user){
+      document.querySelectorAll(".nav").forEach(n=>{
+        if (n.querySelector(".logout")) return;
+        const a=document.createElement("a");
+        a.href="/logout"; a.className="logout"; a.textContent="Sign out ("+d.user+")";
+        n.appendChild(a);
+      });
+    }
+  }catch(e){}
+}
+
+$("#approval").onchange=e=>setRule("approval_mode",e.target.value);
+$("#model").onchange=e=>setRule("ollama_model",e.target.value);
+pills(); load(); live(); whoami();
+</script></body></html>

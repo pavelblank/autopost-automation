@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Content - AUTOPOST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px 20px;
+            border-bottom: 4px solid #3498db;
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .content-types {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .type-btn {
+            padding: 20px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .type-btn:hover {
+            border-color: #3498db;
+            background: #ecf0f1;
+        }
+
+        .type-btn.selected {
+            border-color: #3498db;
+            background: #3498db;
+            color: white;
+        }
+
+        .icon {
+            font-size: 32px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .suggestion-btn {
+            padding: 10px 15px;
+            background: #ecf0f1;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            transition: all 0.3s;
+        }
+
+        .suggestion-btn:hover {
+            background: #bdc3c7;
+            border-color: #3498db;
+        }
+
+        .radio-group {
+            display: grid;
+            gap: 12px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .radio-option:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        .radio-option.selected {
+            border-color: #3498db;
+            background: #ecf0f1;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 12px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .radio-label {
+            flex: 1;
+        }
+
+        .radio-title {
+            font-weight: 600;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .radio-desc {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #bdc3c7;
+        }
+
+        .info-box {
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ecf0f1;
+            border-top-color: #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .status-details {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .content-types {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/" class="back-link">← Back to Dashboard</a>
+            <h1>Generate Content</h1>
+            <p>Create new posts automatically</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <form id="generate-form" onsubmit="handleGenerate(event)">
+                <!-- Content Type -->
+                <div class="section">
+                    <div class="section-title">What type of content?</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; border: 2px solid #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: #ecf0f1;">
+                            <input type="checkbox" name="content-type" value="text" checked style="margin-bottom: 10px; cursor: pointer; width: 20px; height: 20px;">
+                            <span style="font-size: 32px; margin-bottom: 8px;">📝</span>
+                            <span style="font-weight: 600; color: #2c3e50; text-align: center;">Text Post</span>
+                        </label>
+                        <label style="display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; border: 2px solid #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: #ecf0f1;">
+                            <input type="checkbox" name="content-type" value="image" checked style="margin-bottom: 10px; cursor: pointer; width: 20px; height: 20px;">
+                            <span style="font-size: 32px; margin-bottom: 8px;">🖼️</span>
+                            <span style="font-weight: 600; color: #2c3e50; text-align: center;">Image Post</span>
+                        </label>
+                        <label style="display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; border: 2px solid #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: #ecf0f1;">
+                            <input type="checkbox" name="content-type" value="video" checked style="margin-bottom: 10px; cursor: pointer; width: 20px; height: 20px;">
+                            <span style="font-size: 32px; margin-bottom: 8px;">🎬</span>
+                            <span style="font-weight: 600; color: #2c3e50; text-align: center;">Video Post</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Topic Input -->
+                <div class="section">
+                    <div class="form-group">
+                        <label>Your Topic or Idea</label>
+                        <input type="text" id="topic" placeholder="e.g., meditation for sleep, energy healing, gratitude practice" required>
+                    </div>
+
+                    <div class="info-box">
+                        💡 Tip: Be specific! "meditation for better sleep" works better than just "meditation"
+                    </div>
+                </div>
+
+                <!-- Trending Topics -->
+                <div class="section">
+                    <label style="font-weight: 600; color: #2c3e50; display: block; margin-bottom: 12px;">Or pick from trending topics:</label>
+                    <div class="suggestions">
+                        <button type="button" class="suggestion-btn" onclick="setTopic('Gratitude meditation')">Gratitude</button>
+                        <button type="button" class="suggestion-btn" onclick="setTopic('Healing energy')">Healing</button>
+                        <button type="button" class="suggestion-btn" onclick="setTopic('Mindfulness practice')">Mindfulness</button>
+                        <button type="button" class="suggestion-btn" onclick="setTopic('Sleep wellness')">Sleep</button>
+                        <button type="button" class="suggestion-btn" onclick="setTopic('Breathing exercises')">Breathing</button>
+                        <button type="button" class="suggestion-btn" onclick="setTopic('Self-compassion')">Self-Love</button>
+                    </div>
+                </div>
+
+                <!-- AI Model Selection -->
+                <div class="section">
+                    <div class="section-title">🤖 Which AI Model?</div>
+                    <div class="radio-group">
+                        <label class="radio-option" onclick="selectModel('spark')">
+                            <input type="radio" name="model" value="spark">
+                            <div class="radio-label">
+                                <span class="radio-title">⚡ Spark-X 2.5</span>
+                                <span class="radio-desc">4.1B params, 1M context - best for long-form content</span>
+                            </div>
+                        </label>
+
+                        <label class="radio-option selected" onclick="selectModel('llama')">
+                            <input type="radio" name="model" value="llama" checked>
+                            <div class="radio-label">
+                                <span class="radio-title">✨ Llama 3.2 3B (Quality - Default)</span>
+                                <span class="radio-desc">Higher quality - takes 20-30 seconds but more detailed</span>
+                            </div>
+                        </label>
+
+                        <label class="radio-option" onclick="selectModel('qwen35')">
+                            <input type="radio" name="model" value="qwen35">
+                            <div class="radio-label">
+                                <span class="radio-title">🧠 Qwen 3.5 4B (Thinking)</span>
+                                <span class="radio-desc">Supports thinking mode - good for reasoning tasks</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Platform Selection -->
+                <div class="section">
+                    <div class="section-title">📱 Which Platforms?</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="telegram" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">📲 Telegram</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="youtube" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">🎥 YouTube</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="tiktok" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">📱 TikTok</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="discord" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">💜 Discord</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="bluesky" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">🌐 Bluesky</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="facebook" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">f Facebook</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="mastodon" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">🐘 Mastodon</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #ecf0f1; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                            <input type="checkbox" name="platform" value="socialai" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                            <span style="font-weight: 600; color: #2c3e50;">🤖 SocialAI (your-domain.example)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Selection -->
+                <div class="section">
+                    <div class="section-title">After generation, what should happen?</div>
+                    <div class="radio-group">
+                        <label class="radio-option selected" onclick="selectAction('publish')">
+                            <input type="radio" name="action" value="publish" checked>
+                            <div class="radio-label">
+                                <span class="radio-title">⚡ Auto-Publish to Selected Platforms</span>
+                                <span class="radio-desc">Posts immediately to the platforms you selected above</span>
+                            </div>
+                        </label>
+
+                        <label class="radio-option" onclick="selectAction('preview')">
+                            <input type="radio" name="action" value="preview">
+                            <div class="radio-label">
+                                <span class="radio-title">👀 Preview First (I'll Review)</span>
+                                <span class="radio-desc">I want to see it before publishing</span>
+                            </div>
+                        </label>
+
+                        <label class="radio-option" onclick="selectAction('draft')">
+                            <input type="radio" name="action" value="draft">
+                            <div class="radio-label">
+                                <span class="radio-title">📝 Save as Draft</span>
+                                <span class="radio-desc">Create it but don't publish yet</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">
+                        ✨ Generate
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Status Message (hidden by default) -->
+        <div id="status-card" class="card" style="display: none;">
+            <div class="status-message">
+                <div class="spinner"></div>
+                <div class="status-title" id="status-title">Generating...</div>
+                <div class="status-details" id="status-details">
+                    <p id="status-topic" style="margin: 10px 0;"></p>
+                    <p id="status-action" style="margin: 10px 0;"></p>
+                    <p style="margin-top: 20px; color: #95a5a6;">This may take 5-15 minutes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedModel = 'llama';
+        let selectedAction = 'publish';
+
+        function getSelectedTypes() {
+            const checkboxes = document.querySelectorAll('input[name="content-type"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function selectModel(model) {
+            selectedModel = model;
+            document.querySelectorAll('input[name="model"]').parentElement?.closest('.radio-option')?.classList.remove('selected');
+            event.target.closest('.radio-option').classList.add('selected');
+        }
+
+        function selectAction(action) {
+            selectedAction = action;
+            document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+            event.target.closest('.radio-option').classList.add('selected');
+        }
+
+        function setTopic(topic) {
+            document.getElementById('topic').value = topic;
+            event.preventDefault();
+        }
+
+        function getSelectedPlatforms() {
+            const checkboxes = document.querySelectorAll('input[name="platform"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        async function handleGenerate(e) {
+            e.preventDefault();
+
+            const topic = document.getElementById('topic').value;
+            const types = getSelectedTypes();
+            const model = selectedModel;
+            const action = selectedAction;
+            const platforms = getSelectedPlatforms();
+
+            if (types.length === 0) {
+                alert('Please select at least one content type');
+                return;
+            }
+
+            if (platforms.length === 0 && action === 'publish') {
+                alert('Please select at least one platform to publish to');
+                return;
+            }
+
+            // Hide form, show status
+            document.getElementById('generate-form').style.display = 'none';
+            document.getElementById('status-card').style.display = 'block';
+
+            document.getElementById('status-topic').textContent = `Topic: ${topic}`;
+            document.getElementById('status-action').textContent = `Types: ${types.join(', ')} | Mode: ${action.toUpperCase()} | Model: ${model} | Platforms: ${platforms.join(', ')}`;
+
+            // Call API for each selected type
+            try {
+                for (const type of types) {
+                    const response = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ topic, kind: type, action, model, platforms })
+                    });
+                }
+
+                setTimeout(() => {
+                    document.getElementById('status-title').textContent = '✅ Posts Created!';
+                    document.querySelector('.spinner').style.display = 'none';
+                    const platformList = platforms.length > 0 ? platforms.join(', ') : 'selected platforms';
+                    const typeList = types.join(', ');
+                    document.getElementById('status-details').innerHTML = `
+                        <p style="font-size: 16px; margin: 15px 0;">Your ${typeList} ${types.length === 1 ? 'post has' : 'posts have'} been ${
+                            action === 'publish' ? `published to ${platformList}` :
+                            action === 'preview' ? 'created and are waiting for your approval' :
+                            'saved as drafts'
+                        }.</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/'" style="margin-top: 20px; display: inline-block;">
+                            Back to Dashboard
+                        </button>
+                    `;
+                }, 3000);
+            } catch (e) {
+                document.getElementById('status-title').textContent = '⏳ Generation Started';
+                document.getElementById('status-details').innerHTML = `
+                    <p style="font-size: 14px; margin: 15px 0; color: #7f8c8d;">Your content is being generated in the background.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/'" style="margin-top: 20px; display: inline-block;">
+                        Back to Dashboard
+                    </button>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

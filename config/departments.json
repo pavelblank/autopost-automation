@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "DEPARTMENT REGISTRY. AutoPost is ONE department today (the Social Media Department).",
+    "This file exists so more departments can be added later WITHOUT touching the engine.",
+    "If this file is deleted or corrupted, scripts/dept_registry.py falls back to a built-in",
+    "default that is identical to today's behaviour - so it can never take the system offline.",
+    "",
+    "To add a department: copy the social-media block, give it its own AGENT_SPEC.json and",
+    "its own block in rules.json, then set 'active' to its key. Nothing in",
+    "department_queue.py or department.py has to change - both read their chain from a spec."
+  ],
+  "active": "social-media",
+  "departments": {
+    "social-media": {
+      "name": "Social Media Department",
+      "short": "AutoPost",
+      "tagline": "writes one piece of content, has 18 specialists approve it, and will not publish anything it did not check",
+      "spec": "videogen/AGENT_SPEC.json",
+      "chain": "scripts/department_queue.py",
+      "agents": "scripts/department.py",
+      "sidecars": [
+        "scripts/dispatcher.py",
+        "scripts/supervisor.py",
+        "scripts/retention.py"
+      ],
+      "rules_key": "department",
+      "home": "/",
+      "office": "/office",
+      "platforms": ["socialai"],
+      "status": "active",
+      "placeholder_for_more_departments": true,
+      "note": "The first department. 18 chain agents + 3 sidecars. Future departments follow the same shape: their own spec, their own rules block, their own destinations."
+    }
+  }
+}

@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en"><head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Office · AutoPost</title>
+<link rel="stylesheet" href="/assets/ui/app.css">
+<script>if (window.self !== window.top) document.documentElement.classList.add("embedded");</script>
+<style>
+  .embedded header.top{display:none}
+
+  .hd2{max-width:1420px;margin:0 auto;padding:16px 24px 0}
+  .wrap2{max-width:1420px;margin:0 auto;padding:0 24px 40px}
+  .stagebox{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+            background:#0a0d12;box-shadow:var(--sh)}
+  #cv{display:block;width:100%;height:auto;image-rendering:pixelated}
+  .overlay{position:absolute;left:0;right:0;bottom:0;padding:12px 16px;display:flex;gap:10px;
+          align-items:center;flex-wrap:wrap;
+          background:linear-gradient(180deg,rgba(10,13,18,0),rgba(10,13,18,.92) 55%)}
+  .tag{background:rgba(20,26,34,.92);border:1px solid var(--line);border-radius:999px;
+       padding:4px 12px;font-size:12.5px;color:var(--dim)}
+  .tag b{color:var(--fg)}
+  .legend{margin-left:auto;display:flex;gap:12px;font-size:12px;color:var(--dim2);flex-wrap:wrap}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  .feedline{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:var(--dim);
+            padding:10px 2px 0;min-height:22px}
+  table.mini td,table.mini th{padding:8px 10px;font-size:13px}
+  .ready-yes{color:var(--ok)}.ready-no{color:var(--bad)}.ready-part{color:var(--warn)}
+  #tip{position:fixed;z-index:50;max-width:300px;background:#0d1117;border:1px solid #33445a;border-radius:10px;padding:10px 12px;
+       font-size:12.5px;line-height:1.45;color:#e6edf3;box-shadow:0 8px 28px rgba(0,0,0,.55);pointer-events:none;display:none}
+  #tip b{font-size:14px}#tip .m{color:#8b98a9}#tip .r{margin-top:5px}
+  #cv.hov{cursor:pointer}
+  #tabs{display:none}
+</style></head><body>
+
+<header><div class="hd">
+  <div class="logo" id="brand">AutoPost <span>· agent office</span></div>
+  <nav class="nav">
+    <a href="/">Overview</a><a href="/posts">Posts</a><a href="/research">Research</a><a href="/conversations">Conversations</a><a href="/office" class="on">Agent Office</a><a href="/settings">Settings</a>
+  </nav>
+</div></header>
+
+<div class="wrap2">
+  <div class="pills" id="pills"></div>
+
+  <div class="card">
+    <div class="ch">
+      <h2>The office</h2>
+      <span class="sub">every sprite is a real agent reading its state from the database — this page changes nothing</span>
+      <div class="right">
+        <span id="livebadge" style="font-size:12px;color:#8b98a9;margin-right:10px"><span id="livedot" style="color:#3fb950">&#9679;</span> live &middot; <span id="liveat">&hellip;</span></span>
+        <button class="btn" id="refreshbtn" type="button">Refresh now</button>
+        <div class="tabs" id="tabs">
+          <button data-t="floor" class="on">Office</button>
+          <button data-t="who">Who is where</button>
+          <button data-t="ready">Readiness</button>
+          <button data-t="feed">Activity</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cb">
+      <div id="p-floor">
+        <div class="stagebox">
+          <canvas id="cv" width="2000" height="1480"></canvas><div id="tip"></div>
+          <div class="overlay">
+            <span class="tag">Job <b id="o-job">—</b></span>
+            <span class="tag">Topic <b id="o-topic">—</b></span>
+            <span class="tag">Step <b id="o-step">—</b></span>
+            <span class="legend">
+              <span><i style="background:#3fb950"></i>working now</span>
+              <span><i style="background:#7d8fa8"></i>finished</span>
+              <span><i style="background:#d29922"></i>retrying</span>
+              <span><i style="background:#f85149"></i>stopped</span>
+              <span><i style="background:#566273"></i>waiting / idle</span>
+            </span>
+          </div>
+        </div>
+        <div class="feedline" id="ticker">&nbsp;</div>
+      </div>
+
+      <div id="p-who" class="hide">
+        <table class="mini"><thead><tr>
+          <th>Agent</th><th>Stage</th><th>Role</th><th>State</th><th>Waiting on</th><th>Produces</th>
+        </tr></thead><tbody id="who"></tbody></table>
+      </div>
+
+      <div id="p-ready" class="hide">
+        <p class="muted" style="font-size:13px;margin-bottom:12px">
+          What each piece of the department is, and whether it is really ready.
+          Nothing here is a claim — each row was checked against the running system.
+        </p>
+        <table class="mini"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>
+          <tbody id="ready"></tbody></table>
+      </div>
+
+      <div id="p-feed" class="hide">
+        <table class="mini"><thead><tr><th>When</th><th>Agent</th><th>What</th></tr></thead>
+          <tbody id="feed"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ago = t => { if(!t) return "-"; const s = Math.max(0, Date.now()/1000 - t);
+  return s<90?Math.round(s)+"s ago": s<5400?Math.round(s/60)+"m ago": s<86400?Math.round(s/3600)+"h ago": Math.round(s/86400)+"d ago"; };
+async function j(u){ try{ const r=await fetch(u,{cache:"no-store"}); return await r.json(); }catch(e){ return null; } }
+
+let SNAP=null;
+document.querySelectorAll("#tabs button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    const t=b.dataset.t;
+    ["floor","who","ready","feed"].forEach(x=>$("#p-"+x).classList.toggle("hide", x!==t));
+  };
+});
+
+/* ==================================================================
+   THE ROOM
+
+   The previous version redrew ~5,450 floor tiles every frame, which
+   pinned the CPU and made the page look broken. The room itself never
+   changes, so it is now drawn ONCE into an offscreen canvas and blitted.
+   Only the agents and their nameplates are redrawn, which is ~20 sprites.
+   ================================================================== */
+const T = 16, S = 3, CW = 2000, CH = 1480;
+const WALL = 46 * S;
+const cv = $("#cv"), g = cv.getContext("2d");
+g.imageSmoothingEnabled = false;
+
+const IMG = {}; let missing = [];
+["char_0","char_1","char_2","char_3","char_4","char_5",
+ "floor_1","floor_2","floor_3","DESK_FRONT","PC_FRONT_OFF","PC_FRONT_ON_1","PC_FRONT_ON_2",
+ "PC_FRONT_ON_3","BOOKSHELF","DOUBLE_BOOKSHELF","PLANT","LARGE_PLANT","SOFA_FRONT",
+ "COFFEE_TABLE","COFFEE","WHITEBOARD","CLOCK","SMALL_PAINTING","BIN","CUSHIONED_CHAIR_BACK"]
+.forEach(n => { const im = new Image(); im.src = "/pixel/" + n + ".png"; IMG[n] = im; });
+
+const ready = n => { const i = IMG[n]; return i && i.complete && i.naturalWidth > 0; };
+const drawImg = (ctx, name, sx, sy, w, h, dx, dy) => {
+  const i = IMG[name];
+  if (ready(name)) ctx.drawImage(i, sx, sy, w, h, dx, dy, w * S, h * S);
+};
+
+/* ZONES: one per stage, in chain order, left to right. */
+const ZONES = [
+  {n:"Intake",       x:1,  y:2, rows:1, cols:2, label:"STAGE 1  INTAKE"},
+  {n:"Planning",     x:7,  y:2, rows:2, cols:3, label:"STAGE 2  CREATE"},
+  {n:"Approval",     x:15, y:2, rows:1, cols:2, label:"STAGE 3  APPROVE"},
+  {n:"Production",   x:1,  y:9, rows:2, cols:4, label:"STAGE 4  MAKE & INSPECT"},
+  {n:"Publishing",   x:11, y:9, rows:1, cols:3, label:"STAGE 5  RELEASE"},
+  {n:"Verification", x:17, y:9, rows:1, cols:2, label:"STAGE 6  VERIFY"},
+  {n:"Report",       x:21, y:2, rows:1, cols:1, label:"STAGE 7  REPORT"}
+];
+
+/* ROOM ORIGINS (x,y): work rooms are scattered, the 4 break rooms sit in the 4 corners. */
+const ROOMPOS = { research:[610,190], creative:[70,490], review:[1140,230], gen:[600,600],
+                  publish:[700,1050], check:[1100,1110], head:[1150,700], ops:[1700,470] };
+const REL = { arjun:["research",70,200], intake:["research",220,200],
+  maya:["creative",60,200], sophie:["creative",180,200], daniel:["creative",60,440], leo:["creative",180,440],
+  oliver:["review",60,200], isabella:["review",180,200], noah:["gen",60,190], grace:["gen",180,190],
+  ella:["publish",60,190], victoria:["check",60,190], helena:["head",120,200],
+  supervisor:["ops",50,225], dispatcher:["ops",155,225], idle_manager:["ops",50,395], retention:["ops",155,395] };
+const LAYOUT = {};
+Object.keys(REL).forEach(k => { const r = REL[k]; LAYOUT[k] = [ROOMPOS[r[0]][0] + r[1], ROOMPOS[r[0]][1] + r[2]]; });
+const SLOTS = Object.keys(LAYOUT).map((k, n) => ({ key: k, x: LAYOUT[k][0], y: LAYOUT[k][1], idx: n }));
+
+function agentStatus(a){
+  const s = (a && a.status || "idle").toLowerCase();
+  if (s === "running" || s === "ready") return "run";
+  if (s === "done" || s === "ok") return "done";
+  if (s === "skipped") return "skip";
+  if (s === "failed") return "retry";
+  if (s === "dead") return "dead";
+  return "idle";
+}
+const COL = {run:"#3fb950", done:"#7d8fa8", retry:"#d29922",
+              dead:"#f85149", idle:"#566273", skip:"#39424f"};
+
+/* ---------- the static room, drawn once ---------- */
+let bg = null, bgReady = false;
+function buildRoom(){
+  bg = document.createElement("canvas");
+  bg.width = CW; bg.height = CH;
+  const c = bg.getContext("2d");
+  c.imageSmoothingEnabled = false;
+
+  // back wall
+  const wg = c.createLinearGradient(0,0,0,WALL);
+  wg.addColorStop(0,"#2b3648"); wg.addColorStop(1,"#1b2333");
+  c.fillStyle = wg; c.fillRect(0,0,CW,WALL);
+  c.fillStyle = "#151c27"; c.fillRect(0, WALL - 8*S, CW, 8*S);
+  c.fillStyle = "rgba(255,255,255,.04)"; c.fillRect(0, WALL - 8*S, CW, 2);
+
+  // windows + daylight spill
+  for (let i = 0; i < 6; i++){
+    const wx = 70*S + i*300*S/3, wy = 9*S, ww = 118*S, wh = 28*S;
+    c.fillStyle = "#0e1620"; c.fillRect(wx, wy, ww, wh);
+    const sky = c.createLinearGradient(0, wy, 0, wy + wh);
+    sky.addColorStop(0,"#9fc6e8"); sky.addColorStop(1,"#e3edf7");
+    c.fillStyle = sky; c.fillRect(wx+2, wy+2, ww-4, wh-4);
+    c.fillStyle = "rgba(255,255,255,.6)"; c.fillRect(wx + ww/2 - 2, wy, 4, wh);
+    c.fillStyle = "rgba(0,0,0,.2)";  c.fillRect(wx+2, wy+2, ww-4, 3);
+    const sp = c.createLinearGradient(0, WALL, 0, WALL + 46*S);
+    sp.addColorStop(0,"rgba(180,210,240,.12)"); sp.addColorStop(1,"rgba(180,210,240,0)");
+    c.fillStyle = sp; c.fillRect(wx - 12, WALL, ww + 24, 46*S);
+  }
+
+  // floor
+  const fh = CH - WALL;
+  const floors = ["floor_1","floor_1","floor_2","floor_3"];
+  for (let ty = 0; ty*16 < fh; ty++){
+    for (let tx = 0; tx*16 < CW; tx++){
+      const px = tx*16*S, py = WALL + ty*16*S;
+      if (ready("floor_1")){
+        const pick = ((tx*7 + ty*13) % 11 === 0) ? "floor_3"
+                   : (((tx + ty) % 2 === 0) ? "floor_1" : "floor_2");
+        const im = IMG[pick];
+        if (ready(pick)) c.drawImage(im, 0, 0, 16, 16, px, py, 16*S, 16*S);
+        else { c.fillStyle = ((tx+ty)%2) ? "#20293a" : "#1b2333"; c.fillRect(px,py,16*S,16*S); }
+      } else {
+        c.fillStyle = ((tx+ty)%2) ? "#20293a" : "#1b2333"; c.fillRect(px,py,16*S,16*S);
+      }
+    }
+  }
+
+  // vignette
+  const vg = c.createRadialGradient(CW/2, CH*0.55, CH*0.25, CW/2, CH*0.55, CH*0.95);
+  vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,.45)");
+  c.fillStyle = vg; c.fillRect(0,0,CW,CH);
+
+  // ================= FLOOR PLAN =================
+  const box = (x, y, w, h, col, edge) => { c.fillStyle = col; c.fillRect(x, y, w, h);
+    if (edge){ c.strokeStyle = edge; c.lineWidth = 2; c.strokeRect(x, y, w, h); } };
+  const disc = (x, y, r, col, edge) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+    if (edge){ c.strokeStyle = edge; c.lineWidth = 3; c.stroke(); } };
+  const room = (x, y, w, h, label, tint, door) => {
+    c.fillStyle = tint; c.fillRect(x, y, w, h);
+    c.strokeStyle = "#0b1017"; c.lineWidth = 8;
+    const dw = door === false ? 0 : 72, dx = x + w/2 - dw/2;
+    c.beginPath(); c.moveTo(x, y + h); c.lineTo(x, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h);
+    c.moveTo(x, y + h); c.lineTo(dx, y + h); c.moveTo(dx + dw, y + h); c.lineTo(x + w, y + h); c.stroke();
+    c.strokeStyle = "rgba(160,190,230,.28)"; c.lineWidth = 2; c.strokeRect(x + 4, y + 4, w - 8, h - 8);
+    c.font = "700 " + (7.5*S) + "px system-ui,sans-serif"; c.textAlign = "left";
+    const tw = c.measureText(label).width + 24;
+    c.fillStyle = "#0b1017"; c.fillRect(x, y - 34, tw, 34);                 // label tab sits ABOVE the room, so it never covers furniture
+    c.fillStyle = "rgba(200,220,245,.97)"; c.fillText(label, x + 12, y - 9); c.textAlign = "center";
+  };
+  const at = (ox, oy, nx, ny, fn) => { c.save(); c.translate(nx - ox, ny - oy); fn(); c.restore(); };
+  const rug = (x, y, w, h, col) => { box(x, y, w, h, col); c.strokeStyle = "rgba(255,255,255,.12)"; c.lineWidth = 2; c.strokeRect(x + 6, y + 6, w - 12, h - 12); };
+
+  // ---- work departments (the 14-agent roster, in flow order) ----
+  at(30,150,610,190,()=>{
+  room(30, 150, 420, 280, "1 . RESEARCH & START", "rgba(110,150,210,.07)");
+  box(50, 400, 130, 22, "#7a5a3a", "#4a3320");
+  drawImg(c, "PLANT", 0,0,16,32, 400, 160);
+  drawImg(c, "WHITEBOARD", 0,0,32,32, 180, 152);
+
+  });
+  at(460,150,70,490,()=>{
+  room(460, 150, 330, 540, "2 . CREATIVE STUDIO", "rgba(220,170,90,.06)");
+  rug(500, 280, 250, 130, "rgba(150,90,60,.22)"); rug(500, 520, 250, 130, "rgba(150,90,60,.22)");
+  drawImg(c, "WHITEBOARD", 0,0,32,32, 540, 152); drawImg(c, "DOUBLE_BOOKSHELF", 0,0,32,32, 700, 150);
+  drawImg(c, "PLANT", 0,0,16,32, 468, 440);
+
+  });
+  at(800,150,1140,230,()=>{
+  room(800, 150, 300, 280, "3 . REVIEW OFFICE", "rgba(150,120,220,.07)");
+  drawImg(c, "SMALL_PAINTING", 0,0,16,32, 1040, 152); drawImg(c, "PLANT", 0,0,16,32, 1050, 330);
+
+  });
+  at(800,440,600,600,()=>{
+  room(800, 440, 300, 250, "4 . GENERATION & QUALITY", "rgba(120,200,150,.06)");
+  box(830, 452, 160, 30, "#1a2330", "#33445a");
+  for (let i = 0; i < 6; i++){ box(836 + i*26, 458, 20, 18, "#0e1620"); box(842 + i*26, 464, 8, 5, i % 2 ? "#3fb950" : "#58a6ff"); }
+
+  });
+  at(1110,440,700,1050,()=>{
+  room(1110, 440, 200, 250, "5 . PUBLISHING", "rgba(90,190,220,.06)");
+  box(1124, 452, 170, 34, "#0d1117", "#33445a"); box(1130, 458, 76, 22, "#2d5da8"); box(1212, 458, 76, 22, "#a83a3a");
+
+  });
+  at(1320,440,1100,1110,()=>{
+  room(1320, 440, 190, 250, "6 . POST CHECK", "rgba(120,220,160,.06)");
+  box(1334, 452, 160, 30, "#e9eef5", "#9aa4b0");
+  for (let i = 0; i < 4; i++){ box(1342 + i*36, 460, 22, 4, "#3fb950"); box(1342 + i*36, 468, 22, 4, "#9aa4b0"); }
+
+  });
+  at(1110,150,1150,700,()=>{
+  room(1110, 150, 380, 280, "7 . HEAD OFFICE", "rgba(230,200,110,.07)");
+  rug(1130, 330, 200, 80, "rgba(160,50,50,.28)");
+  drawImg(c, "DOUBLE_BOOKSHELF", 0,0,32,32, 1330, 150);
+
+  });
+  at(1510,150,1700,470,()=>{
+  room(1510, 150, 210, 540, "OPERATIONS (always on)", "rgba(60,90,140,.12)");
+  for (let i = 0; i < 4; i++){
+    const rx = 1522 + i*50; box(rx, 160, 42, 82, "#131a25", "#2b3648");
+    for (let j = 0; j < 5; j++){ box(rx + 5, 168 + j*14, 24, 8, "#1d2632"); box(rx + 31, 170 + j*14, 5, 5, j % 2 ? "#3fb950" : "#d29922"); }
+  }
+
+  // ---- off-time rooms ----
+  });
+  at(30,720,30,190,()=>{
+  room(30, 720, 490, 210, "CAFETERIA . KITCHEN", "rgba(230,170,80,.07)");
+  box(46, 744, 250, 34, "#c9ced6", "#8d96a3"); box(46, 744, 250, 8, "#5d6673");
+  drawImg(c, "COFFEE", 0,0,16,16, 64, 746); drawImg(c, "COFFEE", 0,0,16,16, 112, 746);
+  box(190, 750, 28, 22, "#3a6ea5", "#cfe3f7"); box(240, 748, 40, 26, "#e8edf3", "#9aa4b0");
+  box(452, 744, 56, 100, "#b3262e", "#701018"); box(460, 754, 40, 50, "#ffd9a0"); box(460, 814, 40, 16, "#222");
+  [[110, 850], [260, 850], [400, 850]].forEach(([tx, ty]) => {
+    disc(tx, ty, 26, "#d9b38c", "#8a6a45"); box(tx - 6, ty - 6, 12, 12, "#fff6e0");
+    drawImg(c, "CUSHIONED_CHAIR_BACK", 0,0,16,16, tx - 56, ty - 22); drawImg(c, "CUSHIONED_CHAIR_BACK", 0,0,16,16, tx + 18, ty - 22);
+  });
+
+  });
+  at(540,720,1610,190,()=>{
+  room(540, 720, 360, 210, "MEETING ROOM", "rgba(90,130,200,.08)");
+  drawImg(c, "WHITEBOARD", 0,0,32,32, 690, 724);
+  box(590, 800, 260, 70, "#8a5a32", "#5b3a1e"); box(598, 806, 244, 58, "#a06a3c");
+  for (let i = 0; i < 4; i++){ drawImg(c, "CUSHIONED_CHAIR_BACK", 0,0,16,16, 610 + i*62, 762); drawImg(c, "CUSHIONED_CHAIR_BACK", 0,0,16,16, 610 + i*62, 874); }
+  box(690, 818, 28, 18, "#e9eef5"); box(760, 822, 22, 14, "#e9eef5");
+
+  });
+  at(920,720,30,1160,()=>{
+  room(920, 720, 440, 210, "GAME ZONE", "rgba(170,90,220,.09)");
+  [[940, "#2ecc71"], [992, "#e74c3c"], [1044, "#3498db"]].forEach(([ax, col]) => {
+    box(ax, 744, 38, 66, "#232a38", "#0d1117"); box(ax + 5, 750, 28, 22, col); box(ax + 5, 780, 28, 8, "#555");
+    disc(ax + 12, 796, 3, "#ffd23f");
+  });
+  box(1140, 770, 130, 66, "#1e6a3a", "#e9eef5"); box(1203, 770, 4, 66, "#e9eef5"); disc(1170, 804, 3, "#fff");
+  drawImg(c, "SOFA_FRONT", 0,0,32,16, 1000, 880);
+  box(1090, 880, 56, 30, "#111", "#4a5568"); box(1095, 884, 46, 20, "#2d5da8");
+  box(1290, 744, 50, 40, "#3a2a1a", "#6a4a2a");
+
+  });
+  at(1380,720,1630,1160,()=>{
+  room(1380, 720, 340, 210, "LOUNGE", "rgba(210,120,150,.07)");
+  drawImg(c, "SOFA_FRONT", 0,0,32,16, 1410, 760); drawImg(c, "SOFA_FRONT", 0,0,32,16, 1410, 860);
+  drawImg(c, "COFFEE_TABLE", 0,0,32,32, 1500, 780); drawImg(c, "COFFEE", 0,0,16,16, 1508, 788);
+  drawImg(c, "COFFEE_TABLE", 0,0,32,32, 1500, 860);
+  drawImg(c, "LARGE_PLANT", 0,0,32,48, 1650, 740); drawImg(c, "PLANT", 0,0,16,32, 1620, 880);
+
+
+  });
+  // ---- main wall decor ----
+  drawImg(c, "CLOCK", 0,0,16,32, 660, WALL - 32*S);
+  drawImg(c, "SMALL_PAINTING", 0,0,16,32, 330, WALL - 32*S);
+  drawImg(c, "WHITEBOARD", 0,0,32,32, 1000, WALL - 32*S);
+  drawImg(c, "LARGE_PLANT", 0,0,32,48, CW - 100, WALL - 40*S);
+
+  bgReady = true;
+}
+
+/* ---------- the moving part ---------- */
+function sprite(sheetName, row, col, dx, dy){
+  if (!ready(sheetName)) return;
+  const i = IMG[sheetName];
+  g.drawImage(i, col*16, row*32, 16, 32, dx, dy - 32*S, 16*S, 32*S);
+}
+
+
+/* ---------- off-time: where agents walk when they are not working ---------- */
+const BREAK = {
+  cafe:    [[100,285],[180,285],[330,285],[400,285],[200,365],[300,365],[420,365],[110,365]],
+  game:    [[70,1320],[120,1320],[170,1320],[270,1330],[340,1330],[400,1290],[110,1240],[210,1240]],
+  meeting: [[1680,270],[1742,270],[1804,270],[1866,270],[1680,355],[1742,355],[1804,355],[1866,355]],
+  lounge:  [[1675,1285],[1720,1285],[1810,1270],[1850,1330],[1690,1335],[1790,1335],[1900,1270],[1910,1335]]
+};
+const BREAK_ORDER = ["cafe","game","meeting","lounge"];
+const POS = {}, AG = {}, HIT = {};
+let lastT = performance.now();
+function breakSpot(i, t){
+  const zone = BREAK_ORDER[i % 4];
+  const list = BREAK[zone];
+  const p = list[Math.floor(i / 4) % list.length];
+  return { x: p[0] + Math.sin(t*0.6 + i)*5, y: p[1] + Math.cos(t*0.5 + i*2)*3, zone: zone };
+}
+
+
+function pickPlace(i, t){
+  const zone = BREAK_ORDER[Math.floor(Math.random() * BREAK_ORDER.length)];
+  const list = BREAK[zone];
+  const p = list[Math.floor(Math.random() * list.length)];
+  return { x: p[0], y: p[1], zone: zone };
+}
+const ZONE_NAME = { desk:"at the desk", cafe:"in the cafeteria", game:"in the game zone", meeting:"in the meeting room", lounge:"in the lounge" };
+const FUN = {
+  intake:["Checking the schedule", "Picking the best topic for this slot", "Double-checking the history"],
+  maya:["Sketching the creative brief", "Hunting for the big idea", "Doodling story angles"],
+  arjun:["Scouting trending topics", "Checking the history so nothing repeats", "Re-ranking the ready list"],
+  sophie:["Writing the script", "Polishing the hook", "Rewriting line three again"],
+  daniel:["Drawing the storyboard", "Framing the shots", "Arguing with a camera angle"],
+  aisha:["Choosing the colours", "Dressing the scene", "Moving a lamp 2 pixels"],
+  leo:["Tuning the emotions", "Finding the right feeling", "Setting the mood"],
+  oliver:["Reviewing the plan", "Reading every page", "Red pen at the ready"],
+  isabella:["Signing off generation", "Checking the budget", "Stamping APPROVED"],
+  noah:["Rendering the media", "Feeding the GPU", "Watching pixels appear"],
+  grace:["Inspecting every frame", "Hunting for blank frames", "Squinting at the pixels"],
+  ethan:["Final content review", "Reading it out loud", "Checking the tone"],
+  chloe:["Packaging for each platform", "Trimming to fit", "Wrapping the post"],
+  marcus:["Checking the release rules", "Looking both ways", "Clearing the launch"],
+  ella:["Publishing the post", "Pressing the big button", "Sending it out"],
+  victoria:["Reading the live post back", "Verifying it went live", "Counting the copies"],
+  james:["Fixing anything that broke", "Patching a loose end", "Standing by with tape"],
+  helena:["Writing the final report", "Checking the whole chain", "Signing the audit"],
+  supervisor:["Scanning every job for stuck steps", "Fixing a stalled job", "Checking the AI engine and the GPU"],
+  retention:["Deleting files older than 7 days", "Keeping unpublished work safe", "Cleaning old logs"],
+  dispatcher:["Waiting for the next time slot", "Starting the post that is due now", "Checking today's plan"],
+  idle_manager:["Checking if the machine is free", "Making a post ahead of time", "Asking ARJUN for a new topic"]
+};
+function funText(key, t){
+  const l = FUN[key] || ["Working on it"];
+  return l[Math.floor(t / 5) % l.length];
+}
+
+let t0 = performance.now(), frames = 0, fps = 0, lastFps = performance.now();
+function draw(){
+  requestAnimationFrame(draw);
+  if (!bgReady){
+    if (ready("floor_1") || missing.length === 0) buildRoom();
+    else if (!missing.length) { buildRoom(); }
+  }
+  const t = (performance.now() - t0) / 1000;
+
+  if (bgReady) g.drawImage(bg, 0, 0);
+  else { g.fillStyle = "#0d1117"; g.fillRect(0,0,CW,CH); }
+
+  const agents = (SNAP && SNAP.agents) || [];
+
+  SLOTS.forEach((sl, i) => {
+    const ag = agents.find(a => (a.key || '').toLowerCase() === sl.key);
+    const st = ag ? agentStatus(ag) : "idle";
+    const name = ag ? (ag.name || "").split(" ")[0].toUpperCase() : "";
+
+    // desk + monitor + chair
+    drawImg(g, "DESK_FRONT", 0, 0, 48, 32, sl.x - 16*S, sl.y - 16*S);
+    const pc = st === "run" ? "PC_FRONT_ON_1" : (st === "done" ? "PC_FRONT_ON_2" : "PC_FRONT_OFF");
+    drawImg(g, pc, 0, 0, 16, 32, sl.x - 6*S, sl.y - 44*S);
+    drawImg(g, "CUSHIONED_CHAIR_BACK", 0, 0, 16, 16, sl.x + 4*S, sl.y - 6*S);
+
+    // working glow
+    if (st === "run"){
+      const gl = g.createRadialGradient(sl.x, sl.y, 2, sl.x, sl.y, 46*S);
+      gl.addColorStop(0, "rgba(63,185,80,.28)");
+      gl.addColorStop(1, "rgba(63,185,80,0)");
+      g.fillStyle = gl; g.fillRect(sl.x - 46*S, sl.y - 46*S, 92*S, 92*S);
+    }
+    // stopped alarm
+    if (st === "dead"){
+      const gl = g.createRadialGradient(sl.x, sl.y, 2, sl.x, sl.y, 40*S);
+      gl.addColorStop(0, "rgba(248,81,73,.22)");
+      gl.addColorStop(1, "rgba(248,81,73,0)");
+      g.fillStyle = gl; g.fillRect(sl.x - 40*S, sl.y - 40*S, 80*S, 80*S);
+    }
+
+    // ---- where is this agent right now? a small state machine, so people keep moving ----
+    const desk = { x: sl.x + 8*S, y: sl.y - 12*S, zone: "desk" };
+    const A = AG[i] || (AG[i] = { dest: desk, until: 0, next: t + 1 + Math.random() * 10 });
+    const working = st === "run" || st === "retry" || st === "dead";
+    if (!ag || working){
+      A.dest = desk; A.next = t + 6 + Math.random() * 10;                // working people stay at their desk
+    } else if (A.dest.zone === "desk"){
+      if (t > A.next){ A.dest = pickPlace(i, t); A.until = t + 9 + Math.random() * 14; }
+    } else if (t > A.until){
+      if (Math.random() < 0.45){ A.dest = pickPlace(i, t); A.until = t + 8 + Math.random() * 14; }  // wander on
+      else { A.dest = desk; A.next = t + 8 + Math.random() * 18; }                                  // back to the desk
+    }
+    const onBreak = A.dest.zone !== "desk";
+    const wob = onBreak ? { x: Math.sin(t*0.7 + i)*4, y: Math.cos(t*0.6 + i*2)*2 } : { x: 0, y: 0 };
+    const spot = { x: A.dest.x + wob.x, y: A.dest.y + wob.y, zone: A.dest.zone };
+    const P = POS[i] || (POS[i] = { x: desk.x, y: desk.y });
+    const ddx = spot.x - P.x, ddy = spot.y - P.y, dist = Math.hypot(ddx, ddy);
+    const dt = Math.min(0.1, (performance.now() - lastT) / 1000);
+    const moving = dist > 3;
+    if (moving){ const stp = Math.min(dist, 85 * dt); P.x += ddx / dist * stp; P.y += ddy / dist * stp; }
+    else { P.x = spot.x; P.y = spot.y; }
+    const px = P.x - 8*S, py = P.y + 12*S;     // == sl.x / sl.y while sitting at the desk
+    HIT[i] = { ag, st, x: P.x, y: P.y, zone: spot.zone, moving };
+
+    // name plate (follows the agent)
+    g.fillStyle = "rgba(13,17,23,.88)";
+    const plY = onBreak ? py - 64*S : py + 8*S;
+    g.fillRect(px - 15*S, plY, 31*S, 11*S);
+    g.strokeStyle = COL[st]; g.lineWidth = 2;
+    g.strokeRect(px - 15*S, plY, 31*S, 11*S);
+    g.fillStyle = COL[st];
+    g.beginPath(); g.arc(px - 11*S, plY + 5.5*S, 2.2*S, 0, 6.2832); g.fill();
+    g.fillStyle = "#e6edf3"; g.font = "600 " + (5.2*S) + "px system-ui,sans-serif";
+    g.textAlign = "center";
+    g.fillText(name.slice(0, 8), px + 3*S, plY + 8*S);
+
+    // the agent itself
+    if (ag){
+      const sheet = "char_" + (i % 6);
+      let row, col;
+      if (moving){ row = 0; col = [0,1,2,1][Math.floor(t*6 + i) % 4]; }            // walking
+      else if (st === "run"){ row = 1; col = [0,1,2][Math.floor(t/3 + i) % 3]; }   // typing at the desk
+      else if (st === "retry"){ row = 2; col = [0,1][Math.floor(t/4 + i) % 2]; }
+      else if (onBreak && spot.zone === "game"){ row = 1; col = [0,1,2][Math.floor(t*2 + i) % 3]; } // playing
+      else if (onBreak){ row = 2; col = [0,1][Math.floor(t/2.2 + i) % 2]; }         // chatting / resting
+      else { row = 2; col = [0,1][Math.floor(t/3 + i*2) % 2]; }                      // idle at the desk
+      sprite(sheet, row, col, P.x, P.y);
+      // bubble: a fun "I'm working on ..." line for whoever is working right now,
+      // or the real result line for a very recent handoff - never random chatter
+      const evs = (SNAP && SNAP.events) || [];
+      const me = (ag.name || "").split(" ")[0].toLowerCase();
+      const ev = evs.find(e => (e.agent || "").split(" ")[0].toLowerCase() === me && (Date.now()/1000 - e.ts) < 45 && e.status !== "running");
+      let msg = null, bcol = "rgba(240,246,252,.96)";
+      // ONLY the agent who is working right now talks (the owner's rule) - nobody else gets a bubble
+      if (st === "run"){ msg = "I'm on it: " + funText(sl.key, t); bcol = "rgba(214,245,222,.97)"; }
+      if (msg){
+        g.font = "600 " + (5*S) + "px system-ui,sans-serif";
+        const w = g.measureText(msg).width + 10*S, bx = Math.max(4, Math.min(CW - w - 4, px - w/2 + 3*S));
+        const by = (onBreak ? py - 64*S : py - 52*S) - 14*S;
+        g.fillStyle = bcol; g.fillRect(bx, by, w, 11*S);
+        g.beginPath(); g.moveTo(px, by + 11*S); g.lineTo(px + 4*S, by + 11*S); g.lineTo(px + 1*S, by + 15*S); g.fill();
+        g.fillStyle = "#0d1117"; g.textAlign = "left"; g.fillText(msg, bx + 5*S, by + 8*S); g.textAlign = "center";
+      }
+    }
+  });
+
+  lastT = performance.now();
+  frames++;
+  const now = performance.now();
+  if (now - lastFps >= 1000){ fps = frames; frames = 0; lastFps = now; }
+}
+
+/* ============================ data ============================ */
+async function load(manual){
+  const d = await j("/api/office");
+  const dot = $("#livedot");
+  if (!d){ $("#ticker").textContent = "cannot reach the office snapshot"; if (dot) dot.style.color = "#f85149"; return; }
+  if (dot){ dot.style.color = "#3fb950"; if (manual){ dot.style.opacity = .3; setTimeout(() => dot.style.opacity = 1, 250); } }
+  const at = $("#liveat"); if (at) at.textContent = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true});
+  SNAP = d;
+  const agents = d.agents || [];
+
+  const job = d.job || {}, lr = d.last_run || {};
+  $("#o-job").textContent   = job.job_id || lr.id ? (job.job_id || ("run #" + (lr.id || "—"))) : "—";
+  $("#o-topic").textContent = (job.topic || lr.topic || "—").slice(0, 58);
+  $("#o-step").textContent  = job.step || (d.paused ? "paused" : "idle");
+
+  const ev = (d.events || [])[0];
+  let tick = ev ? (ev.agent + " · " + ev.status + " · " + (ev.reason || "")) : "waiting for the first action";
+  tick = tick.slice(0, 140);
+  if (d.poller) tick += "   ·   poller " + (d.poller.alive ? ("alive, beat " + d.poller.age + "s ago") : "not running");
+  $("#ticker").textContent = tick;
+
+  const nRun = agents.filter(a => agentStatus(a) === "run").length;
+  const nDead = agents.filter(a => agentStatus(a) === "dead").length;
+  $("#pills").innerHTML = [
+    ["Agents", agents.length, "ok"],
+    ["Poller", d.poller && d.poller.alive ? "alive" : "stopped", d.poller && d.poller.alive ? "busy" : "warn"],
+    ["Working", nRun, "busy"],
+    ["Stopped", nDead, nDead ? "bad" : "ok"],
+    ["FPS", fps, ""]
+  ].map(([n, v, c]) => '<div class="pill"><span class="dot ' + c + '"></span><b>' +
+     esc(n) + '</b><small>' + esc(String(v)) + '</small></div>').join("");
+
+  $("#who").innerHTML = agents.map(a => {
+    const st = agentStatus(a);
+    return "<tr>"
+      + "<td><b>" + esc(a.name) + "</b>" + (a.key ? '<div class="muted mono" style="font-size:11px">' + esc(a.key) + "</div>" : "") + "</td>"
+      + "<td>" + (a.stage ? "stage " + a.stage : '<span class="muted">sidecar</span>') + "</td>"
+      + '<td class="muted" style="font-size:12.5px">' + esc((a.role || "").slice(0, 54)) + "</td>"
+      + '<td><span class="badge" style="color:' + COL[st] + ';border-color:' + COL[st] + '55">' + esc(a.status || "idle") + "</span></td>"
+      + '<td class="muted" style="font-size:12.5px">' + esc((a.reason || "—").slice(0, 58)) + "</td>"
+      + '<td class="muted mono" style="font-size:11.5px">' + esc((a.outputs || []).join(", ").slice(0, 44)) + "</td>"
+      + "</tr>";
+  }).join("");
+
+  $("#feed").innerHTML = (d.events || []).map(f =>
+    "<tr><td class=\"muted\" style=\"white-space:nowrap\">" + esc(ago(f.ts)) + "</td>"
+    + "<td><b>" + esc(f.agent || "") + "</b></td>"
+    + '<td class="muted">' + esc(f.reason || "") + "</td></tr>").join("")
+    || '<tr><td colspan="3" class="muted">nothing yet</td></tr>';
+
+  $("#ready").innerHTML = (d.checks || []).map(c => {
+    const cls = c.ok === true ? "ready-yes" : (c.ok === false ? "ready-no" : "ready-part");
+    return "<tr><td>" + esc(c.name) + "</td>"
+      + '<td class="' + cls + '">' + (c.ok === true ? "READY" : (c.ok === false ? "NOT READY" : "PARTIAL")) + "</td>"
+      + '<td class="muted" style="font-size:12.5px">' + esc(c.note || c.detail || "") + "</td></tr>";
+  }).join("") || '<tr><td colspan="3" class="muted">no readiness data</td></tr>';
+}
+
+
+/* ---------- hover / click: who is this and what are they doing right now ---------- */
+let PIN = null;
+function agentAt(mx, my){
+  let best = null, bd = 1e9;
+  Object.keys(HIT).forEach(k => {
+    const h = HIT[k]; if (!h || !h.ag) return;
+    const x0 = h.x, y0 = h.y - 32*S, x1 = h.x + 16*S, y1 = h.y;
+    if (mx >= x0 - 6 && mx <= x1 + 6 && my >= y0 - 6 && my <= y1 + 6){
+      const d = Math.hypot(mx - (x0 + x1)/2, my - (y0 + y1)/2); if (d < bd){ bd = d; best = h; }
+    }
+  });
+  return best;
+}
+function tipHtml(h){
+  const a = h.ag, st = h.st, key = (a.key || "").toLowerCase();
+  const word = {run:"WORKING NOW", done:"finished its step", idle:"waiting for work", retry:"retrying", dead:"STOPPED", skip:"skipped (not needed)"}[st] || st;
+  const doing = st === "run" ? (a.desk ? esc(a.reason || "") : funText(key, (performance.now() - t0) / 1000))
+              : (h.zone !== "desk" ? "taking a break " + (ZONE_NAME[h.zone] || "") : "sitting " + ZONE_NAME.desk);
+  const duties = (a.duties || []).slice(0, 4).map(d => "<li>" + esc(String(d).slice(0, 110)) + "</li>").join("");
+  return '<b>' + esc(a.name || key) + '</b> <span class="m">&middot; ' + esc(a.title || a.role || "") + '</span>'
+    + '<div class="r"><span style="color:' + COL[st] + '">&#9679;</span> ' + esc(word) + '</div>'
+    + '<div class="r">Doing: ' + doing + '</div>'
+    + (a.reason && !a.desk ? '<div class="r m">Last result: ' + esc(String(a.reason).slice(0, 110)) + '</div>' : '')
+    + (a.goal ? '<div class="r m"><b>Goal:</b> ' + esc(String(a.goal).slice(0, 190)) + '</div>' : '')
+    + (duties ? '<div class="r m"><b>Duties:</b><ul style="margin:3px 0 0 16px;padding:0">' + duties + '</ul></div>' : '');
+}
+(function wireTip(){
+  const tip = document.getElementById("tip");
+  const place = (e) => { const r = tip.getBoundingClientRect(); let x = e.clientX + 16, y = e.clientY + 16;
+    if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 16; if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 16;
+    tip.style.left = Math.max(4, x) + "px"; tip.style.top = Math.max(4, y) + "px"; };
+  const coords = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * CW / r.width, (e.clientY - r.top) * CH / r.height]; };
+  cv.addEventListener("mousemove", e => {
+    const [mx, my] = coords(e), h = agentAt(mx, my);
+    cv.classList.toggle("hov", !!h);
+    if (h){ tip.innerHTML = tipHtml(h); tip.style.display = "block"; place(e); } else tip.style.display = "none";
+  });
+  cv.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  cv.addEventListener("click", e => {
+    const [mx, my] = coords(e), h = agentAt(mx, my);
+    if (h){ tip.innerHTML = tipHtml(h); tip.style.display = "block"; place(e); }
+  });
+})();
+
+/* ---------- boot ---------- */
+let spriteTries = 0;
+(function start(){
+  const img = IMG["floor_1"];
+  if (ready("floor_1")) { buildRoom(); draw(); }
+  else if (spriteTries++ < 120) { setTimeout(start, 100); }     // wait for the sprites
+  else { buildRoom(); draw(); }                                  // draw without sprites anyway
+  (async function(){
+    const dep = await j("/api/departments");
+    if (dep && dep.active) $("#brand").innerHTML = esc(dep.active.short) + " <span>· agent office</span>";
+    await load();
+    document.getElementById("refreshbtn").onclick = () => load(true);
+    setInterval(load, 2000);                       // live: the office follows the real work every 2 s
+  })();
+})();
+</script></body></html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conversations · AutoPost</title>
+<link rel="stylesheet" href="/assets/ui/app.css">
+<style>
+  .cols{display:grid;grid-template-columns:1fr 1.5fr;gap:16px;align-items:start}
+  @media(max-width:1000px){.cols{grid-template-columns:1fr}}
+  .chat{height:calc(100vh - 250px);min-height:420px;overflow-y:auto;padding:6px 4px;display:flex;flex-direction:column;gap:10px}
+  .msg{display:flex;gap:10px;align-items:flex-start}
+  .av{flex:0 0 34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#0d1117}
+  .bub{background:var(--card2,#161d27);border:1px solid var(--line,#26303d);border-radius:4px 12px 12px 12px;padding:8px 12px;max-width:94%}
+  .bub .wh{font-size:12px;color:var(--dim2,#8b98a9);margin-bottom:2px}
+  .bub .wh b{color:var(--text,#e6edf3);font-size:13px}
+  .bub .tx{font-size:13.5px;line-height:1.45}
+  .bub.bad{border-color:#f8514955;background:rgba(248,81,73,.08)}
+  .bub.go{border-color:#3fb95055}
+  .wait{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line,#26303d)}
+  .wait span{font-size:12px;color:var(--dim2,#8b98a9);background:var(--card2,#161d27);border:1px solid var(--line,#26303d);border-radius:999px;padding:3px 10px}
+  .note{color:var(--dim2,#8b98a9);font-size:13px;line-height:1.55;padding:14px}
+  .jobbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(--dim2,#8b98a9)}
+  .jobbar select{background:var(--card2,#161d27);color:var(--text,#e6edf3);border:1px solid var(--line,#26303d);border-radius:8px;padding:5px 8px}
+  .board{display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 250px);overflow-y:auto}
+  .jb{border:1px solid var(--line,#26303d);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--card2,#161d27)}
+  .jb:hover,.jb.sel{border-color:#58a6ff}
+  .jb .t{font-size:13.5px;font-weight:600;margin-bottom:4px}
+  .jb .n{font-size:12.5px;color:var(--dim2,#8b98a9);margin-bottom:6px}
+  .jb .n b{color:var(--text,#e6edf3)}
+  .chips{display:flex;flex-wrap:wrap;gap:4px}
+  .chips i{font-style:normal;font-size:10.5px;padding:2px 7px;border-radius:999px;border:1px solid #39424f;color:#8b98a9}
+  .chips i.working{background:rgba(63,185,80,.18);border-color:#3fb950;color:#3fb950;font-weight:700}
+  .chips i.done{border-color:#7d8fa8;color:#7d8fa8}
+  .chips i.dead{border-color:#f85149;color:#f85149}
+  .st{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:999px;margin-left:6px}
+  .st.working{background:rgba(63,185,80,.18);color:#3fb950}.st.stock{background:rgba(88,166,255,.15);color:#58a6ff}
+  .st.done{background:rgba(125,143,168,.15);color:#7d8fa8}.st.stopped{background:rgba(248,81,73,.15);color:#f85149}.st.waiting,.st.cancelled{background:rgba(210,153,34,.15);color:#d29922}
+</style></head><body>
+
+<header><div class="hd">
+  <div class="logo" id="brand">AutoPost <span>&middot; conversations</span></div>
+  <nav class="nav">
+    <a href="/">Overview</a><a href="/posts">Posts</a><a href="/research">Research</a><a href="/conversations" class="on">Conversations</a><a href="/office">Agent Office</a><a href="/settings">Settings</a>
+  </nav>
+</div></header>
+
+<div class="wrap">
+  <div class="jobbar">
+    <span>Job:</span><select id="jobsel"></select>
+    <span id="jobtopic"></span>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <div class="ch"><h2>Jobs</h2><span class="sub">who is doing it, who finished, what is next &mdash; click a job to read its work chat</span></div>
+      <div class="cb"><div id="board" class="board"><div class="note">Loading&hellip;</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><h2>Work chat</h2><span class="sub">only work: who started, who finished, who handed over to whom, who is waiting</span></div>
+      <div class="cb">
+        <div class="chat" id="chat"><div class="note">Loading&hellip;</div></div>
+        <div class="wait" id="wait"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function j(u){ try{ const r = await fetch(u,{cache:"no-store"}); return await r.json(); }catch(e){ return null; } }
+// 12-hour clock with AM/PM
+function ap(v){
+  return String(v == null ? "" : v).replace(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b(?!\s*[AaPp][Mm])/g, (m0, h, mi, se) => {
+    let H = +h; if (H > 23) return m0; const suf = H >= 12 ? "PM" : "AM"; H = H % 12 || 12;
+    return H + ":" + mi + (se ? ":" + se : "") + " " + suf; });
+}
+const CHAIN = ["intake","maya","sophie","daniel","leo","oliver","isabella","noah","grace","ella","victoria","helena"];
+const COLORS = ["#f2c14e","#58a6ff","#3fb950","#d29922","#bc8cff","#ff7b72","#79c0ff","#56d364","#e3b341","#ffa657"];
+const short = n => String(n||"").split(" ")[0].toUpperCase();
+const colorOf = n => { let h = 0; for (const c of short(n)) h = (h*31 + c.charCodeAt(0)) % 997; return COLORS[h % COLORS.length]; };
+
+// turn one recorded event into what that agent would say about THEIR work
+function say(m, got){
+  const me = short(m.agent), msg = String(m.message || "").trim();
+  const to = String(m.to || "").trim();
+  const st = String(m.status || m.verb || "").toLowerCase();
+  if (st === "enqueued") return {t: "New job in: “" + msg.slice(0, 110) + "”. Who can start?", cls: ""};
+  if (st === "running"){
+    const from = got[me];
+    const part = m.hands_over ? "I'll produce: " + m.hands_over.replace(/_/g," ").replace(/\.json$/,"") : "starting my part";
+    return {t: (from ? "Got the handover from " + from + ". " : "") + "I'm starting now — " + part + ".", cls: ""};
+  }
+  if (st === "done"){
+    const end = !to || to === "CHAIN END";
+    return {t: "I'm finished: " + msg + "." + (end ? " That's the end of my chain." : " I'm handing over to " + to + (m.hands_over ? " (" + m.hands_over.replace(/\.json$/,"") + ")" : "") + "."), cls: "go"};
+  }
+  if (st === "skipped") return {t: "Nothing for me to do on this job (" + msg + ").", cls: ""};
+  if (/fail|dead|reject|stuck|error|retry/.test(st)) return {t: "I'm stuck: " + msg, cls: "bad"};
+  return {t: st + ": " + msg, cls: ""};
+}
+
+
+async function loadBoard(){
+  const d = await j("/api/board"); if (!d) return;
+  $("#board").innerHTML = (d.jobs || []).map(x =>
+    '<div class="jb' + (x.job_id === JOB ? ' sel' : '') + '" data-id="' + esc(x.job_id) + '">'
+    + '<div class="t">' + esc(x.topic || x.job_id) + ' <span class="st ' + esc(x.state) + '">' + esc(x.state.toUpperCase()) + '</span></div>'
+    + '<div class="n">' + esc(x.kind || "") + (x.style ? " &middot; " + esc(x.style) : "") + (x.stock ? " &middot; made ahead of time" : "") + ' &middot; ' + esc(x.progress) + ' done &middot; <b>' + esc(x.now) + '</b>'
+    + (x.last_done ? '<br>' + esc(x.last_done) : '') + '</div>'
+    + '<div class="chips">' + x.steps.map(s => '<i class="' + (s.status === "running" ? "working" : (s.status === "done" || s.status === "skipped") ? "done" : s.status === "dead" ? "dead" : "") + '">' + esc(s.name) + '</i>').join("") + '</div></div>'
+  ).join("") || '<div class="note">No jobs yet.</div>';
+  document.querySelectorAll("#board .jb").forEach(el => el.onclick = () => { JOB = el.dataset.id; load(); loadBoard(); });
+}
+let JOB = new URLSearchParams(location.search).get("job") || "";
+async function load(){
+  const d = await j("/api/comms/timeline" + (JOB ? "?job=" + encodeURIComponent(JOB) : ""));
+  if (!d){ $("#chat").innerHTML = '<div class="note">cannot reach the conversation data</div>'; return; }
+  if (!JOB) JOB = d.job_id || "";
+  const box = $("#chat"), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  const got = {}; const out = [];
+  (d.messages || []).forEach(m => {
+    const me = short(m.agent), s = say(m, got);
+    if (String(m.status).toLowerCase() === "done" && m.to && m.to !== "CHAIN END") got[short(m.to)] = me;
+    out.push('<div class="msg"><div class="av" style="background:' + colorOf(me) + '">' + esc(me.slice(0,2)) + '</div>'
+      + '<div class="bub ' + s.cls + '"><div class="wh"><b>' + esc(me) + '</b> &middot; ' + esc(ap(m.time)) + ' &middot; ' + esc(m.ago || "") + '</div>'
+      + '<div class="tx">' + esc(s.t) + '</div></div></div>');
+  });
+  box.innerHTML = out.join("") || '<div class="note">No work conversation yet for this job.</div>';
+  if (atBottom) box.scrollTop = box.scrollHeight;
+
+  // who is waiting, and for whom
+  const stat = {}; (d.steps || []).forEach(s => stat[s.step] = s.status);
+  const waits = [];
+  CHAIN.forEach((k, i) => {
+    if (stat[k] === "pending"){
+      const prev = CHAIN[i-1] ? CHAIN[i-1].toUpperCase() : "the job";
+      waits.push('<span><b>' + esc(k.toUpperCase()) + '</b>: I\'m waiting for ' + esc(prev) + '</span>');
+    }
+  });
+  $("#wait").innerHTML = waits.length ? waits.join("") : '<span>nobody is waiting</span>';
+
+  $("#jobtopic").textContent = (d.messages && d.messages[0] && d.messages[0].message) ? String(d.messages[0].message).slice(0, 90) : "";
+}
+(async function boot(){
+  const st = await j("/api/status");
+  const sel = $("#jobsel");
+  const list = ((st && st.jobs) || []).filter(x => !/dry-run/.test(x.kind || "") && !/ARCHIVED/.test(x.reason || ""));
+  if (Array.isArray(list) && list.length){
+    sel.innerHTML = list.slice(0, 15).map(x => '<option value="' + esc(x.job_id || x.id) + '">' + esc((x.job_id || x.id) + " · " + String(x.topic || "").slice(0, 40)) + '</option>').join("");
+    sel.onchange = () => { JOB = sel.value; load(); };
+  } else sel.style.display = "none";
+  await load();
+  loadBoard(); setInterval(loadBoard, 5000);
+  setInterval(load, 6000);
+})();
+</script></body></html>

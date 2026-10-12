@@ -1,0 +1,32 @@
+AutoPost Automation License
+Copyright (c) 2026 Mr Blank
+Project home: https://github.com/pavelblank/autopost-automation
+
+You may use, copy, change, share and even sell this software, for free, for any
+purpose, under these conditions.
+
+1. The author credit stays.
+   The credit "Created by Mr Blank" must remain, unchanged, in all of these places:
+   - the one line notice at the top of every source file
+   - the files AUTHORS.md, NOTICE.md, LICENSE and AUTHORSHIP.sig
+   - the footer of the dashboard pages
+   - the start up banner in the logs
+   You may add your own name as an extra contributor. You may not remove, hide,
+   replace or switch off the author credit, or the code that keeps it in place
+   (scripts/authorship.py and scripts/_ap_core.py).
+
+2. Do not claim it as your own.
+   You may not present the original work as made by you or by anyone else.
+
+3. Say when you changed it.
+   You are free to add features and fix things. If you share a changed version,
+   say clearly that it is a modified version of AutoPost Automation by Mr Blank.
+
+4. Keep this license.
+   This license text must come with every copy of the software.
+
+5. If you break rule 1, 2, 3 or 4, your permission to use the software ends.
+
+The software is provided "as is", without any warranty. The author is not
+responsible for any harm, loss or account problems that come from using it.
+You are responsible for following the rules of every platform you post to.

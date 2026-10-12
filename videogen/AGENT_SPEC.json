@@ -1,0 +1,970 @@
+{
+  "_about": "AutoPost Social Media Department v3.0 - agent contract. The engine (scripts/department_queue.py) reads THIS FILE and enforces the triggers, timeouts, retries and error actions. Change behaviour here, not in code. Every agent: one primary job, one trigger, defined outputs, and a named action for every failure case.",
+  "_guarantees": [
+    "No two steps ever run at the same time - one global lease covers the whole department.",
+    "A step that overruns its timeout is killed, not waited on. The system cannot hang.",
+    "Every step has a retry budget. When it is spent the step goes to the dead-letter queue, never into an infinite loop.",
+    "A step never blocks its successor unless it COMPLETED or was deliberately SKIPPED.",
+    "If the model, the GPU or a service is unavailable, the step fails fast and retries later - it never spins.",
+    "Every action is written to department_jobs before the next step is triggered, so the chain is always reconstructable."
+  ],
+  "_statuses": {
+    "pending": "waiting for its trigger",
+    "ready": "trigger fired - this is the ONLY step allowed to run",
+    "running": "claimed by the engine, heartbeat on file",
+    "done": "completed successfully - triggers the next step",
+    "skipped": "deliberately not applicable - also triggers the next step",
+    "failed": "failed, retry budget remaining - will be re-armed",
+    "dead": "retry budget spent - waits for a human, never blocks the queue"
+  },
+  "defaults": {
+    "timeout_sec": 900,
+    "max_attempts": 3,
+    "backoff": [
+      30,
+      120,
+      600
+    ],
+    "dead_letter": true,
+    "heartbeat_sec": 20
+  },
+  "agents": [
+    {
+      "key": "intake",
+      "name": "NADIA",
+      "room": "01-intake",
+      "stage": 1,
+      "job": "Production Scheduling Executive (initial agent). Two ways to wake: (1) a SCHEDULED SLOT - serve a finished post from the waiting list if one of that kind exists, otherwise pick the best topic from ARJUN's ready list and run the full flow; (2) the IDLE MANAGER - start a full flow for stock, in strict priority: video until 5 ready, then image+text until 5, then text until 5. Either way the SAME 14-agent flow runs from start to end; a stock job only differs in that ELLA is not triggered - it waits in the waiting list. Normal scheduled work always has priority over idle work.",
+      "trigger": "A scheduled slot is due (the dispatcher clock), OR the idle manager decides there is free time (nothing running, GPU free, next slot far enough away).",
+      "inputs": [
+        "topic",
+        "kind (video|image|text)",
+        "platforms"
+      ],
+      "actions": [
+        "Classify as A. Video+text, B. Image+text, or C. Text only.",
+        "Mint a stable job_id shared by every row of this job.",
+        "Record source material, requirements, destination platforms.",
+        "Check publication history for this topic (research.check_fresh)."
+      ],
+      "outputs": [
+        "WORK/01-intake/<job_id>/intake.json",
+        "job.json"
+      ],
+      "timeout_sec": 120,
+      "max_attempts": 3,
+      "errors": {
+        "topic is empty": "REJECT immediately, reason 'no topic supplied', job closed as FAILED. Never guess a topic.",
+        "unknown kind": "REJECT immediately, list the three valid kinds.",
+        "research.check_fresh unavailable": "CONTINUE. Duplicate checking is advisory at intake; record it as unavailable and let ARJUN re-check.",
+        "job_id collision": "RE-mint with a new hash suffix. Never reuse an id."
+      },
+      "role": "Production Scheduling Executive (the initial agent)",
+      "title": "Production Scheduling Executive (the initial agent)",
+      "goal": "Start every post at the right time with the right topic: when the schedule fires, decide text / image+text / video and pick the best-suited topic from ARJUN's ready list.",
+      "duties": [
+        "Wake on the schedule (the clock).",
+        "Open ARJUN's ready list and start from the top of the priority list.",
+        "Decide which kind is due now: text, image + text, or video.",
+        "Select the topic that suits that kind best.",
+        "Run a SECOND history audit before starting; if it fails, ask ARJUN for a replacement and try the next candidate.",
+        "Lock the topic (in work) so nobody else takes it; open the job; trigger the creative department.",
+        "Then go idle until the next schedule trigger."
+      ],
+      "safety": [
+        "Opens a job only for a topic that passes the duplicate, real-person and personal-story checks.",
+        "Locks the topic the moment the job opens so no other job can pick it.",
+        "Never opens a second job while a generation is running."
+      ]
+    },
+    {
+      "key": "maya",
+      "name": "MAYA",
+      "role": "Creative Director",
+      "room": "02-maya",
+      "stage": 2,
+      "job": "Understand the objective and set the creative direction.",
+      "trigger": "NADIA opened the job.",
+      "inputs": [
+        "intake.json"
+      ],
+      "actions": [
+        "Write objective, target audience, central message, intended outcome, tone.",
+        "State what the viewer should DO after watching.",
+        "Save the creative brief."
+      ],
+      "outputs": [
+        "WORK/02-scripts/<job_id>/creative_brief.json"
+      ],
+      "timeout_sec": 300,
+      "max_attempts": 3,
+      "errors": {
+        "model unavailable": "RETRY with backoff. After the budget, DEAD-LETTER - no brief, no chain.",
+        "model returns invalid JSON": "RETRY immediately (2nd attempt). If it fails again, ask once more with a stricter prompt, then DEAD-LETTER.",
+        "empty brief": "DEAD-LETTER. An empty brief poisons every agent after it."
+      },
+      "title": "Creative Director",
+      "goal": "Set the creative direction for the whole post and tell the team exactly what must be made - including how many text sizes and media types this topic needs for the connected platforms.",
+      "duties": [
+        "Write the creative brief: objective, audience, central message, intended outcome, tone.",
+        "Receive the platform requirements (limits, formats, types) and plan the set of post variants for this title.",
+        "Give the music idea.",
+        "Hand the brief to SOPHIE."
+      ],
+      "safety": [
+        "Writes the creative brief only - never the script, never facts.",
+        "Never invents a name, number, date or place."
+      ]
+    },
+    {
+      "key": "arjun",
+      "name": "ARJUN",
+      "role": "Senior Research Executive",
+      "room": "03-arjun",
+      "stage": 0,
+      "job": "Senior Research Executive and the FIRST agent of the whole system. In his own idle time he always keeps the ready-topic list full (>= 10 analysed, history-checked topics with verified source facts), so every other agent finds a topic waiting. He works ONLY while the AI engine is idle and stands down the moment any job step runs. When the topic list runs short he is triggered FIRST - by NADIA, by the idle manager, or by the SUPERVISOR - and the full team starts only after he has topics.",
+      "trigger": "His own 5-minute clock (idle-only); OR 'no topic available' raised by NADIA / the idle manager / the SUPERVISOR - then he scouts immediately.",
+      "inputs": [
+        "creative_brief.json"
+      ],
+      "actions": [
+        "Verify factual claims.",
+        "Identify reliable sources.",
+        "Check publication history for duplicate content.",
+        "Flag copyright concerns and unsupported claims."
+      ],
+      "outputs": [
+        "data/research_ledger.json",
+        "the ready-topic list"
+      ],
+      "timeout_sec": 420,
+      "max_attempts": 2,
+      "errors": {
+        "no sources reachable": "CONTINUE with an explicit 'unverified' flag. Never invent a source.",
+        "topic already published within cooldown": "REJECT and return to MAYA with the near-duplicate named. This is a hard stop, not a warning.",
+        "copyright concern found": "REJECT and return to MAYA with the concern quoted."
+      },
+      "title": "Senior Research Executive",
+      "goal": "Always have the next topics ready: scrape Google Trends, Reddit, YouTube, Mastodon/Bluesky/HackerNews and more to find what is trending, and keep a ready list that is never short and never repeats anything we have posted.",
+      "duties": [
+        "Research every 5 minutes - but ONLY when the AI engine is idle; stand down the moment any job step runs.",
+        "Audit every candidate against the whole publish history before it can enter the ready list.",
+        "Keep at least 10 audited, never-published topics ready at all times.",
+        "Re-rank the waiting list on every pass: a better, more popular topic jumps to the front automatically.",
+        "Keep the research ledger (source, why it is trending, facts, scores, time found, status).",
+        "Remove a topic from the list only when it is published or worked.",
+        "When NADIA's audit rejects a topic, supply a replacement."
+      ],
+      "safety": [
+        "Works only while the AI engine is idle - never competes with a running job.",
+        "A topic is usable only after the quality check marks it ok.",
+        "Source text is copied verbatim; claims are never rewritten or invented."
+      ]
+    },
+    {
+      "key": "sophie",
+      "name": "SOPHIE",
+      "role": "Script & Dialog Writer",
+      "room": "04-sophie",
+      "stage": 2,
+      "job": "Write the final script.",
+      "trigger": "MAYA completed.",
+      "inputs": [
+        "creative_brief.json",
+        "research_report.json"
+      ],
+      "actions": [
+        "Write narration / dialog / text post.",
+        "Apply the SCRIPT-FIRST rule: script details, background, timing, screenplay, character, dress, age, dialogs, movement, content context, full story arc.",
+        "Keep on-screen text to ONE short line that reads on a phone.",
+        "VIDEO SPEECH RULE: dialogs are a list of {speaker, line}; at most 4 lines and 28 words in total (the video is about 11 seconds and every line is spoken aloud). Whole lines only, never a half sentence. SOPHIE and NOAH both fit the lines to the picture; NOAH refuses a render whose voice-over did not speak every line.",
+        "REAL-PEOPLE VIDEO RULE: the main character is an attractive, charming young woman aged 25-32 in a stylish, tasteful, fully dressed outfit (adults only, nothing revealing or sexual, safe for YouTube and TikTok), described precisely so she looks the same in every scene.",
+        "Save the script."
+      ],
+      "outputs": [
+        "WORK/02-scripts/<job_id>/script.json"
+      ],
+      "timeout_sec": 420,
+      "max_attempts": 3,
+      "errors": {
+        "script missing a required SCRIPT-FIRST element": "RETRY once with the missing element named in the prompt.",
+        "model produced raw reasoning instead of content": "RETRY with the thinking field stripped. This is a known failure of the thinking models.",
+        "second retry also broken": "DEAD-LETTER. A video without a script is never generated."
+      },
+      "title": "Script & Dialog Writer",
+      "goal": "Write everything that is said or read: the script, the dialogs, and every text variant for every platform.",
+      "duties": [
+        "Write the complete script: story arc, background, timing, characters (age and dress), dialogs, movement.",
+        "Write every text variant planned by MAYA: LONG, MEDIUM, SHORT and the media CAPTION - each inside its platform limit.",
+        "Fix text sent back by OLIVER, ISABELLA, GRACE or ELLA (precise reason, limited rounds)."
+      ],
+      "safety": [
+        "States only facts that are in research_report.json.",
+        "No source found = no names, numbers, dates or quotes at all.",
+        "A script missing any required key (video: story arc, characters, background, timing, dialogs, movement) is rejected, not accepted."
+      ]
+    },
+    {
+      "key": "daniel",
+      "name": "DANIEL",
+      "role": "Scene & Visual Director",
+      "room": "05-daniel",
+      "stage": 2,
+      "job": "Turn the script into a scene-by-scene plan.",
+      "trigger": "SOPHIE completed.",
+      "inputs": [
+        "script.json"
+      ],
+      "actions": [
+        "List scenes in order: beginning, middle, ending.",
+        "Define pacing and transitions.",
+        "Specify shots, framing and sequence.",
+        "Save the storyboard."
+      ],
+      "outputs": [
+        "WORK/02-scripts/<job_id>/storyboard.json",
+        "WORK/04-visual/<job_id>/visual_spec.json"
+      ],
+      "timeout_sec": 600,
+      "max_attempts": 3,
+      "skip_when": "kind == text",
+      "errors": {
+        "scene count does not match the script": "RETRY once asking for exactly the scene count the script states.",
+        "model unavailable": "RETRY, then DEAD-LETTER."
+      },
+      "title": "Scene & Visual Director",
+      "goal": "Turn the script into a scene-by-scene plan with consistent characters and backgrounds. (Includes the former AISHA role.)",
+      "duties": [
+        "Write the scene-by-scene storyboard (video: exactly 4 scenes; image: 1).",
+        "Define characters (age, dress, look), backgrounds, props, palette and the consistency rules.",
+        "Skipped for text-only posts."
+      ],
+      "safety": [
+        "Plans exactly the required number of scenes (video 4, image 1); text posts are skipped.",
+        "Every scene uses the same character description."
+      ]
+    },
+    {
+      "key": "aisha",
+      "name": "AISHA",
+      "role": "Visual Design Specialist",
+      "room": "06-aisha",
+      "stage": 2,
+      "job": "Define characters, backgrounds and visual consistency.",
+      "trigger": "DANIEL completed (or SKIPPED). SKIPPED for kind=text.",
+      "inputs": [
+        "script.json",
+        "storyboard.json"
+      ],
+      "actions": [
+        "Define characters with age and dress.",
+        "Define backgrounds, props and composition.",
+        "Establish the palette.",
+        "Write the consistency rule that the same character description is repeated in every scene."
+      ],
+      "outputs": [
+        "WORK/04-visual/<job_id>/visual_spec.json"
+      ],
+      "timeout_sec": 300,
+      "max_attempts": 3,
+      "skip_when": "kind == text",
+      "errors": {
+        "character description missing age or dress": "RETRY once naming the missing field. Consistency depends on it.",
+        "model unavailable": "RETRY, then DEAD-LETTER."
+      },
+      "merged_into": "daniel"
+    },
+    {
+      "key": "leo",
+      "name": "LEO",
+      "role": "Emotion & Music Director",
+      "room": "07-leo",
+      "stage": 2,
+      "job": "Define the intended emotion and performance.",
+      "trigger": "DANIEL completed (or skipped for text).",
+      "inputs": [
+        "script.json",
+        "visual_spec.json"
+      ],
+      "actions": [
+        "Define intended emotions and atmosphere.",
+        "Specify character expressions and performance.",
+        "Plan the emotional progression and delivery.",
+        "Confirm the tone matches the story."
+      ],
+      "outputs": [
+        "WORK/04-visual/<job_id>/emotion_guide.json"
+      ],
+      "timeout_sec": 300,
+      "max_attempts": 3,
+      "errors": {
+        "tone contradicts the brief": "REJECT and return to MAYA - the tone is Maya's decision, not Leo's.",
+        "model unavailable": "RETRY, then DEAD-LETTER."
+      },
+      "title": "Emotion & Music Director",
+      "goal": "Give the post its feeling: the emotion, performance, atmosphere and the music plan.",
+      "duties": [
+        "Define emotion, atmosphere, expressions and progression through the scenes.",
+        "Write the music plan that fits the emotion.",
+        "Hand the finished creative package to OLIVER."
+      ],
+      "safety": [
+        "Gives emotion and music guidance only - never changes the script."
+      ]
+    },
+    {
+      "key": "oliver",
+      "name": "OLIVER",
+      "role": "Floor Supervisor & Auditor",
+      "room": "08-oliver",
+      "stage": 3,
+      "job": "Independently audit the whole plan before anything is generated.",
+      "trigger": "LEO completed.",
+      "inputs": [
+        "all stage-2 artefacts"
+      ],
+      "actions": [
+        "Check every required component is present.",
+        "Check consistency between brief, research, script, storyboard, visual and emotion.",
+        "Identify missing components and contradictions.",
+        "Approve or reject with named reasons."
+      ],
+      "outputs": [
+        "WORK/10-audits/<job_id>/planning_audit.json"
+      ],
+      "timeout_sec": 240,
+      "max_attempts": 2,
+      "errors": {
+        "a component is missing": "REJECT and route to MAYA - the EARLIEST responsible specialist, not the nearest.",
+        "components contradict each other": "REJECT and route to MAYA with both sides quoted.",
+        "Oliver cannot read an artefact": "DEAD-LETTER the job. An unreadable plan cannot be approved."
+      },
+      "title": "Floor Supervisor & Auditor",
+      "goal": "Make sure the creative package is complete and clean before anything goes further.",
+      "duties": [
+        "Audit every creative file: nothing missing, no garbage or error text, quality acceptable.",
+        "Reject with a precise reason to the exact creative owner (MAYA / SOPHIE / DANIEL / LEO); two rounds per owner.",
+        "Pass to ISABELLA when clean."
+      ],
+      "safety": [
+        "Approves only when every artifact exists, no story-arc part is empty (video) and every fact is grounded.",
+        "Never edits content: rejects it back to the exact owner with the reason."
+      ]
+    },
+    {
+      "key": "isabella",
+      "name": "ISABELLA",
+      "role": "Editor-in-Chief",
+      "room": "09-isabella",
+      "stage": 3,
+      "job": "Give the final go-ahead for generation.",
+      "trigger": "OLIVER approved.",
+      "inputs": [
+        "planning_audit.json",
+        "every stage-2 artefact"
+      ],
+      "actions": [
+        "Confirm all required production components are complete.",
+        "Confirm previous planning defects have been resolved.",
+        "Authorise or reject generation.",
+        "Write the authorisation - NOAH cannot start without it."
+      ],
+      "outputs": [
+        "WORK/10-audits/<job_id>/generation_approval.json"
+      ],
+      "timeout_sec": 240,
+      "max_attempts": 2,
+      "errors": {
+        "a previous defect is still open": "REJECT and route to OLIVER's finding, then to MAYA.",
+        "OLIVER's audit file is unreadable": "REJECT. Never authorise on trust."
+      },
+      "title": "Editor-in-Chief",
+      "goal": "The final editorial check across ALL files, then the go-ahead for generation.",
+      "duties": [
+        "Check scripts, scenes, characters, backgrounds, dialogs, audio and music plan are consistent with each other.",
+        "Send a precise reason back to the responsible agent if anything is inconsistent.",
+        "Give the final go-ahead for generation (NOAH can never start without it)."
+      ],
+      "safety": [
+        "Never authorises generation unless OLIVER's verdict is approved.",
+        "Writes generation_approval.json - NOAH cannot start without it."
+      ]
+    },
+    {
+      "key": "noah",
+      "name": "NOAH",
+      "role": "Generation Operator",
+      "room": "10-noah",
+      "stage": 4,
+      "job": "Generate the approved asset.",
+      "trigger": "ISABELLA authorised (never without it).",
+      "inputs": [
+        "generation_approval.json",
+        "script.json",
+        "storyboard.json",
+        "visual_spec.json",
+        "emotion_guide.json"
+      ],
+      "actions": [
+        "Take the single-generation lease.",
+        "Generate with Wan2.1 T2V (video) or the image/text pipeline.",
+        "Follow the approved specifications exactly - do not improvise.",
+        "Name the output with a version and release the lease in a finally block."
+      ],
+      "outputs": [
+        "WORK/05-clips/<job_id>/",
+        "run record"
+      ],
+      "timeout_sec": 5400,
+      "max_attempts": 2,
+      "errors": {
+        "no generation authorisation": "REFUSE. Write the refusal and stop. This is the hard gate.",
+        "lease already held by another worker": "WAIT and re-arm. Never run two generations.",
+        "GPU out of memory": "RETRY once after releasing the model. Then DEAD-LETTER with the OOM text.",
+        "generation exceeds 90 minutes": "KILL the process tree, mark failed, route to SOPHIE. A hung generator must never hold the queue.",
+        "ffmpeg wrote nothing": "RETRY once, then DEAD-LETTER with ffmpeg's last lines.",
+        "process crashed": "Lease is auto-stolen by the staleness rule; retry once."
+      },
+      "title": "Generation Operator",
+      "goal": "Generate the post from all approved data - video, image or text - however long that takes, never losing finished work.",
+      "duties": [
+        "Generate using the approved files and scripts only.",
+        "Reuse finished clips on a retry (a retry costs seconds, not another render).",
+        "Show life (heartbeat, clip files) so a long render is never mistaken for a hang.",
+        "Record the run and write the meta/caption files beside the media."
+      ],
+      "safety": [
+        "Never starts without ISABELLA's approval file.",
+        "Publishes the APPROVED text, never a fresh rewrite.",
+        "Frees GPU memory before a video render; reuses finished clips on retry."
+      ]
+    },
+    {
+      "key": "grace",
+      "name": "GRACE",
+      "role": "Post-Generation Inspector",
+      "room": "11-grace",
+      "stage": 4,
+      "job": "Inspect the generated asset against the approved plan. For a STOCK job this is the last step: GRACE passes it, it is copied to STOCK/ready/ and listed in the waiting list for its category (video / image+text / text). ELLA is not triggered until a scheduled slot takes it.",
+      "trigger": "NOAH completed.",
+      "inputs": [
+        "the asset",
+        "the approved plan"
+      ],
+      "actions": [
+        "Check missing scenes, incorrect visuals, gibberish text, cropping, rendering errors.",
+        "Check audio, subtitles, timing and transitions.",
+        "Record EVERY defect found, one per line.",
+        "Pass or fail with the defect list."
+      ],
+      "outputs": [
+        "WORK/10-audits/<job_id>/quality_inspection.json",
+        "final_content_audit.json"
+      ],
+      "timeout_sec": 1020,
+      "max_attempts": 2,
+      "errors": {
+        "defects found": "FAIL and route to SOPHIE - the script caused them. Repeat GRACE after the fix.",
+        "asset file missing or unplayable": "FAIL and route to NOAH, attempt count +1.",
+        "inspection tool unavailable": "FAIL SAFE - treat as a defect and route to SOPHIE. Never pass an uninspected asset."
+      },
+      "title": "Post-Generation Inspector",
+      "goal": "Make sure what was generated is exactly right before it goes to publishing. (Includes the former ETHAN content audit.)",
+      "duties": [
+        "Check the generated file/text/image: present, right size, right type, audio and video tracks.",
+        "Check for error text, garbled text, missing parts, the wrong file.",
+        "Content audit: duplicates, spelling, completeness, repetition.",
+        "Technical problems go back to NOAH (never to the writers); content problems go to SOPHIE/DANIEL."
+      ],
+      "safety": [
+        "Rejects a video that is missing, under 200 KB or under 5 s, or lacks an audio or video track.",
+        "Rejects text that differs from the approved text or contains ungrounded facts.",
+        "A technical failure is retried - never answered by rewriting the script."
+      ]
+    },
+    {
+      "key": "ethan",
+      "name": "ETHAN",
+      "role": "Final Content Auditor",
+      "room": "12-ethan",
+      "stage": 4,
+      "job": "Independently approve the complete content.",
+      "trigger": "GRACE passed.",
+      "inputs": [
+        "the asset",
+        "the approved brief",
+        "the approved plan"
+      ],
+      "actions": [
+        "Compare the actual output with the approved brief and plan.",
+        "Check titles, keywords, accuracy, spelling, completeness, quality.",
+        "Identify incorrect content, repetition, technical errors, previously published material.",
+        "Approve or reject."
+      ],
+      "outputs": [
+        "WORK/10-audits/<job_id>/final_content_audit.json"
+      ],
+      "timeout_sec": 420,
+      "max_attempts": 2,
+      "errors": {
+        "content inaccurate": "REJECT and route to SOPHIE with the exact defect quoted.",
+        "content duplicates something already published": "REJECT and route to ARJUN - the duplicate check belongs to research.",
+        "model unavailable for the LLM review": "Fall back to the deterministic gates. If the deterministic gates pass, PASS but record 'LLM review unavailable'."
+      },
+      "merged_into": "grace"
+    },
+    {
+      "key": "chloe",
+      "name": "CHLOE",
+      "role": "Platform Formatting Specialist",
+      "room": "13-chloe",
+      "stage": 5,
+      "job": "Prepare a separate publishing package per destination.",
+      "trigger": "ETHAN approved.",
+      "inputs": [
+        "the approved content"
+      ],
+      "actions": [
+        "For EACH destination build its own package.",
+        "Check dimensions, aspect ratio, duration and file format.",
+        "Prepare caption, description, hashtags, keywords and metadata.",
+        "Check platform-specific requirements.",
+        "BLOG RULE: blog.your-domain.example ALWAYS gets the full-length article (video, image and text-only alike). If the approved script text is under 1200 characters, write the article from the approved script and the verified facts only, pass the fact gate, and save it as blog_article.txt beside the post. Never publish the short caption to the blog."
+      ],
+      "outputs": [
+        "WORK/09-packages/<job_id>/<platform>.json"
+      ],
+      "timeout_sec": 300,
+      "max_attempts": 3,
+      "errors": {
+        "content exceeds a platform's real limit": "TRIM word-safe and re-check. If it still does not fit, mark that platform SKIPPED with the reason - never cut mid-word.",
+        "platform is not connected": "SKIP that platform and name it. The others still go.",
+        "package build fails": "RETRY, then DEAD-LETTER. Nothing publishes without a package."
+      },
+      "merged_into": "ella"
+    },
+    {
+      "key": "marcus",
+      "name": "MARCUS",
+      "role": "Release Manager",
+      "room": "14-marcus",
+      "stage": 5,
+      "job": "Authorise or refuse the release.",
+      "trigger": "CHLOE completed.",
+      "inputs": [
+        "every approval record",
+        "the packages",
+        "the destination list"
+      ],
+      "actions": [
+        "Verify every mandatory approval and audit is complete.",
+        "Check the final approved content version.",
+        "Verify destination accounts, pages, channels and categories.",
+        "Check publishing permissions and duplicate risk.",
+        "Authorise or reject."
+      ],
+      "outputs": [
+        "WORK/09-packages/<job_id>/release_decision.json"
+      ],
+      "timeout_sec": 180,
+      "max_attempts": 2,
+      "errors": {
+        "ANY mandatory approval missing": "REJECT and name the missing agent. NO POST PROCEEDS.",
+        "destination not connected": "REMOVE that destination from the release. If none remain, reject.",
+        "duplicate risk": "REJECT and route to ARJUN."
+      },
+      "merged_into": "ella"
+    },
+    {
+      "key": "ella",
+      "name": "ELLA",
+      "role": "Publisher",
+      "room": "15-ella",
+      "stage": 5,
+      "job": "Publish the approved content. Takes a finished post from the waiting list at its scheduled slot (oldest of that kind and style), re-checks it, publishes it at once and removes it from the list; if none is waiting, the post is generated by the normal flow.",
+      "trigger": "GRACE passed (normal flow), OR a scheduled slot took a finished post from the waiting list.",
+      "inputs": [
+        "release_decision.json",
+        "the per-platform packages"
+      ],
+      "actions": [
+        "Confirm release authorisation exists.",
+        "Publish to each authorised destination using its own package.",
+        "Record the response, post id, timestamp and URL for every destination.",
+        "Check whether each request succeeded."
+      ],
+      "outputs": [
+        "WORK/09-packages/<job_id>/",
+        "WORK/11-evidence/<job_id>/publish.log"
+      ],
+      "timeout_sec": 2280,
+      "max_attempts": 2,
+      "errors": {
+        "no release authorisation": "REFUSE. Write the refusal. This is the hard gate.",
+        "one destination fails": "CONTINUE with the others. Record the failure for VICTORIA. Never abandon the whole release for one platform.",
+        "publication status UNKNOWN (timeout, no response)": "DO NOT RETRY BLINDLY. Check publication status first; only re-send if the status check proves nothing was sent.",
+        "everything failed": "Record it and let VICTORIA + JAMES + HELENA report FAILED."
+      },
+      "title": "Publisher",
+      "goal": "Post everywhere correctly: know every platform's limits and formats, verify, adapt and post one by one. (Includes the former CHLOE and MARCUS.)",
+      "duties": [
+        "Know every platform's word/character limit, allowed formats and post types.",
+        "Verify the final file is ready and the text size and post type are right for each platform.",
+        "Package per platform; keep big posts big where the page wants them; allocate shorter variants where a page allows less.",
+        "Release gate: refuse without the approvals; publish only to allowed platforms.",
+        "Post ONE BY ONE and record each result; republish a platform VICTORIA reports missing."
+      ],
+      "safety": [
+        "Posts only to department.allowed_platforms.",
+        "Never publishes without the release decision.",
+        "One platform at a time; a failure on one never blocks the others; never posts the same job twice."
+      ]
+    },
+    {
+      "key": "victoria",
+      "name": "VICTORIA",
+      "role": "Post Checker",
+      "room": "16-victoria",
+      "stage": 6,
+      "job": "Audit every live post after publication.",
+      "trigger": "ELLA completed.",
+      "inputs": [
+        "the publication records"
+      ],
+      "actions": [
+        "Verify the correct content, media file, title, caption and destination on each live post.",
+        "Check videos are complete and play correctly.",
+        "Check images, formatting and subtitles.",
+        "Detect duplicate posts, incorrect accounts, missing content.",
+        "Record PASS or FAIL per destination with evidence."
+      ],
+      "outputs": [
+        "WORK/11-evidence/<job_id>/live_post_audit.json"
+      ],
+      "timeout_sec": 600,
+      "max_attempts": 2,
+      "errors": {
+        "any destination FAILED": "Trigger JAMES. Do not proceed to HELENA as if it passed.",
+        "a destination cannot be reached to verify": "Record it as UNVERIFIED. Never report an unverified post as published successfully.",
+        "after JAMES corrects something": "RE-AUDIT independently. Always a fresh audit, never reuse the old result."
+      },
+      "title": "Post Checker",
+      "goal": "Confirm every post is really live - or find what is missing and send it back to ELLA.",
+      "duties": [
+        "Check each platform from a check list: is the post really there?",
+        "If a post is missing, ask ELLA to publish on that platform.",
+        "When every platform is confirmed, pass to HELENA."
+      ],
+      "safety": [
+        "Verifies from the platform itself (read-back), never from our own record.",
+        "Reports a platform as failed when it cannot be read back."
+      ]
+    },
+    {
+      "key": "james",
+      "name": "JAMES",
+      "role": "Incident and Recovery Manager",
+      "room": "17-james",
+      "stage": 6,
+      "job": "Fix problems found in live posts.",
+      "trigger": "VICTORIA reported a failure.",
+      "inputs": [
+        "the failed live audits"
+      ],
+      "actions": [
+        "Investigate each failure.",
+        "Correct a minor error when the platform supports editing.",
+        "Delete a seriously incorrect post when authorised and necessary.",
+        "Ensure the CORRECT post is targeted before acting.",
+        "Record every edit, deletion and replacement.",
+        "Prevent accidental duplicate replacement posts."
+      ],
+      "outputs": [
+        "WORK/11-evidence/<job_id>/remediation.json",
+        "remediation rows"
+      ],
+      "timeout_sec": 900,
+      "max_attempts": 2,
+      "errors": {
+        "cannot be corrected safely": "ESCALATE to human. Set the job to AWAITING HUMAN ACTION. Never guess.",
+        "deletion is not authorised": "ESCALATE. Never delete on your own authority.",
+        "risk of creating a duplicate replacement": "DO NOT ACT. Escalate instead.",
+        "after any correction": "Return the job to VICTORIA for a fresh independent audit."
+      },
+      "merged_into": "helena"
+    },
+    {
+      "key": "helena",
+      "name": "HELENA",
+      "role": "Final Auditor & Department Head",
+      "room": "18-helena",
+      "stage": 7,
+      "job": "Report the true final status of every destination.",
+      "trigger": "VICTORIA passed everything.",
+      "inputs": [
+        "live_audits",
+        "remediation",
+        "publication records"
+      ],
+      "actions": [
+        "Review the final status of each destination.",
+        "Confirm verification and required remediation are documented.",
+        "Choose exactly one status: PUBLISHED AND VERIFIED / PUBLISHED WITH CORRECTIONS / PARTIALLY PUBLISHED / FAILED / AWAITING HUMAN ACTION.",
+        "Send the report through the configured Telegram channel.",
+        "Record the Telegram delivery status."
+      ],
+      "outputs": [
+        "WORK/10-audits/<job_id>/final_report.txt",
+        "final Telegram message"
+      ],
+      "timeout_sec": 1080,
+      "max_attempts": 3,
+      "errors": {
+        "Telegram send fails": "RETRY twice. Then write the report to disk anyway and record delivered=false. The report is never lost.",
+        "any destination unverified": "The job status CANNOT be PUBLISHED AND VERIFIED. Downgrade it.",
+        "status would be PUBLISHED AND VERIFIED but something was escalated": "Downgrade to AWAITING HUMAN ACTION. Never overstate."
+      },
+      "title": "Final Auditor & Department Head",
+      "goal": "The last word: audit the posts on the social media, fix duplicates and cut-off text, and report to the owner. (Includes the former JAMES.)",
+      "duties": [
+        "Audit ON the platforms: duplicates (keep one, delete the repeats safely), text length, post type, no text cut off mid-way.",
+        "Escalate to ELLA if anything is wrong; ELLA escalates to the creative department if needed.",
+        "Send ONE final Telegram message to the owner with the post update."
+      ],
+      "safety": [
+        "Sends exactly ONE Telegram message per job, in plain language.",
+        "Deletes only EXTRA copies of our own post - never the last copy, evidence logged first."
+      ]
+    },
+    {
+      "key": "supervisor",
+      "name": "SYSTEM WATCHDOG",
+      "room": "(sidecar)",
+      "stage": 0,
+      "role": "System Watchdog - finds stuck or failed jobs and fixes them",
+      "job": "Watch every job at once. Find anything stuck: a stalled step, a dead-lettered step, one waiting far too long, one looping, or a job that stopped silently with nothing runnable and nothing reported. Read the evidence, ask the LOCAL model what is wrong (or apply the rule-based retry when the model is busy), and take ONE whitelisted action. Runs every 10 minutes (rules.json supervisor.interval_min). Idle-time production is a SEPARATE agent: the IDLE-TIME MANAGER (it shares this clock but has its own job).",
+      "trigger": "Always on - its own clock.",
+      "inputs": [
+        "department_steps (all jobs)",
+        "department_jobs (history)",
+        "WORK/<area>/<job_id>/*.log",
+        "job.json"
+      ],
+      "actions": [
+        "find_problems()",
+        "diagnose() via local model",
+        "act() from a fixed whitelist"
+      ],
+      "outputs": [
+        "data/supervisor.log"
+      ],
+      "timeout_sec": 240,
+      "max_attempts": 1,
+      "safety": [
+        "NEVER publishes",
+        "NEVER touches the ISABELLA or MARCUS gates",
+        "the model picks only a verdict; SUPERVISOR picks the action",
+        "cannot raise a retry budget",
+        "max 3 interventions per job per 30 min"
+      ],
+      "errors": {
+        "model_unreachable": "fall back to the safest verdict and escalate; never crash"
+      },
+      "title": "Chief Operations & Watchdog",
+      "goal": "The one agent that always watches the whole system and makes sure it never gets stuck. (Includes the former RETENTION.)",
+      "duties": [
+        "Watch every running step by heartbeat (a long render is fine; silence is not).",
+        "Detect stuck steps, jobs, poller, Ollama/GPU, missed schedule slots, a short ready list, low disk.",
+        "Escalate automatically: retry, route back, change strategy, PARK the job and continue with the next slot, tell the owner.",
+        "Clean finished work (retention) and keep the system lean."
+      ]
+    },
+    {
+      "key": "retention",
+      "name": "CLEAN-UP MANAGER",
+      "room": "(sidecar)",
+      "stage": 0,
+      "role": "Old-File Clean-up Manager - deletes old work files and old posts' files 7 days after they are published",
+      "job": "Clean-up system. 7 days after a post is CONFIRMED published, delete its working files and final files; delete logs older than 14 days. Never touches anything unpublished, failed-awaiting-retry, stock (waiting-for-publish), the database, config, scripts or memory. Every deletion is logged first in data/retention.log.",
+      "trigger": "Side desk, every hour (sweep rule: every 6 hours); also checked by the SUPERVISOR each cycle.",
+      "inputs": [
+        "department_steps",
+        "runs.path",
+        "runs.published"
+      ],
+      "actions": [
+        "purge_drafts()",
+        "purge_expired()"
+      ],
+      "outputs": [
+        "data/retention.log",
+        "HELENA final report line"
+      ],
+      "timeout_sec": 600,
+      "max_attempts": 2,
+      "safety": [
+        "NEVER deletes an unpublished job",
+        "NEVER deletes anything inside its 10-day window",
+        "never touches config/, scripts/, data/brain.db, venv/ or the AI models",
+        "logs every path before deleting it"
+      ],
+      "errors": {
+        "locked_file": "skip it, try again next sweep"
+      },
+      "merged_into": "supervisor",
+      "goal": "Keep the disk tidy: remove old work and old post files, but never anything unpublished.",
+      "duties": [
+        "7 days after a post is confirmed published, delete its work folder and final files.",
+        "Delete logs older than 14 days.",
+        "Write every deletion to data/retention.log BEFORE deleting."
+      ]
+    },
+    {
+      "key": "dispatcher",
+      "name": "SCHEDULE MANAGER",
+      "room": "(sidecar)",
+      "stage": 0,
+      "role": "Daily Schedule Manager - starts each post at its time slot (8 a day)",
+      "job": "Own the day's plan. Enqueue at most ONE job at a time (one GPU). Enforce the daily quota: 2 videos 6h apart (one photoreal human, one cartoon, related but NOT identical topics) plus the text and image tracks. Refuse to start a second video while one is in flight.",
+      "trigger": "Its own timer (every 5 min) on the poller tick.",
+      "inputs": [
+        "config/rules.json",
+        "runs (what is already done today)",
+        "department_steps (in flight)"
+      ],
+      "actions": [
+        "plan_today()",
+        "due(slot)",
+        "enqueue_if_idle()"
+      ],
+      "outputs": [
+        "data/dispatcher.json",
+        "department enqueue"
+      ],
+      "timeout_sec": 300,
+      "max_attempts": 2,
+      "safety": [
+        "never enqueues while a generation is in flight",
+        "respects rules.json paused / department.enabled / allowed_platforms",
+        "never publishes by itself - it only enqueues"
+      ],
+      "errors": {
+        "no_free_topic": "skip the slot, try again later"
+      },
+      "merged_into": "intake",
+      "goal": "Start each of the 8 daily posts at its time slot, once a day, without ever overlapping jobs.",
+      "duties": [
+        "At each slot: use a ready post from stock, otherwise start a normal job.",
+        "Claim each slot once per day (no double posting).",
+        "When automation is switched on, mark already-passed slots as done (no catch-up burst)."
+      ]
+    },
+    {
+      "key": "idle_manager",
+      "name": "IDLE-TIME MANAGER",
+      "room": "(sidecar)",
+      "stage": 0,
+      "role": "Idle-Time Manager - makes posts ahead of time when the machine has nothing to do",
+      "job": "Every 10 minutes (on the same clock as the SYSTEM WATCHDOG, but its own job): if automation is on, nothing is running, the GPU is free and the AI engine is up, start the next stock job by strict priority - video first (until 5 are ready), then image+text (5), then text (5). Free-time rule: video needs the next scheduled slot >= 120 min away, image 30, text 20. If no topic is ready it triggers ARJUN first. Never starts idle work while a scheduled job is due or running. Circuit breaker: 3 failed stock jobs in 3 h pauses idle production for 2 h. Code: scripts/stock.py (can_produce, produce_one), called from the SUPERVISOR cycle.",
+      "trigger": "Every 10 minutes while automation is ON.",
+      "inputs": [
+        "config/rules.json",
+        "STOCK/stock.json",
+        "department_steps (is anything running)",
+        "dispatcher.SLOTS (time to next slot)"
+      ],
+      "actions": [
+        "stock.can_produce(kind)",
+        "stock.produce_one(kind)"
+      ],
+      "outputs": [
+        "STOCK/ready/<job_id>/",
+        "STOCK/WAITING-FOR-PUBLISH.md"
+      ],
+      "timeout_sec": 240,
+      "max_attempts": 1,
+      "safety": [
+        "NEVER publishes - a stock job stops after GRACE",
+        "never starts while any step runs or the GPU lease is held",
+        "the normal schedule always wins"
+      ],
+      "errors": {
+        "no_topic_ready": "trigger ARJUN to scout now, try again next cycle"
+      },
+      "title": "Idle-Time Manager",
+      "goal": "Use idle machine time to make finished posts ahead of time, so each scheduled slot is served from stock within seconds.",
+      "duties": [
+        "Check the free-time rule every 10 minutes: machine free (automation ON, Ollama up, nothing running, GPU free) AND enough minutes before the next scheduled slot (video 120, image 30, text 20).",
+        "Only kinds below their stock target (5 each) are candidates.",
+        "Decide in this order: (1) VIDEO whenever a video fits; (2) in a short gap, make the kind the next upcoming slot will lack, soonest slot first, so no slot has to be generated live; (3) otherwise the emptiest stock versus its target (ties: video, image, text).",
+        "Never wait for a video that cannot fit: a short gap is used for image or text.",
+        "Stop and back off when production keeps failing (circuit breaker: 3 failures in 3 hours = 2 hour pause).",
+        "Never publish; a stock job stops after GRACE and is served at its slot."
+      ],
+      "merged_into": "supervisor"
+    }
+  ],
+  "dead_letter": {
+    "what": "A step whose retry budget is spent. It stops blocking the queue and waits for a human.",
+    "who_sees_it": "It stays visible in the office/dashboard as DEAD with its reason and attempt count.",
+    "rule": "A dead step NEVER auto-retries on its own. Only a human clears it.",
+    "job_effect": "The job's final report is AWAITING HUMAN ACTION."
+  },
+  "anti_stuck": [
+    "Hard timeout on every step, enforced by the engine, not by the agent.",
+    "Process trees are killed on timeout, so no orphan can hold the GPU, the lease or the database.",
+    "The single-row gen_lease expires after 12h and is auto-stolen, so a dead owner cannot freeze the system.",
+    "A step that is 'running' with no heartbeat for 3x its heartbeat interval is treated as dead and killed.",
+    "No step waits on another step that is not DONE or SKIPPED, so a rejection cannot deadlock the chain.",
+    "Retry budget is finite everywhere. There is no unbounded retry anywhere in the department.",
+    "SUPERVISOR (sidecar) scans every job each poll: stalled / dead / looping / waiting / silently-stopped, and asks the local model for a verdict before acting.",
+    "The supervisor's action is chosen from a fixed whitelist - a bad model reply can never escalate its own powers, publish, or clear a gate.",
+    "The supervisor is bounded: at most 3 interventions per job per 30 minutes.",
+    "RETENTION (sidecar) deletes drafts only after a job finished, and deletes final output only after its 10-day window.",
+    "DISPATCHER (sidecar) never starts a second job while one is in flight."
+  ],
+  "_sidecars": {
+    "what": "Agents 19-21 are SIDECARS. They are NOT in department_queue.STEPS, so they never appear as chain steps and can never be triggered by a predecessor. They run beside the chain (driven by the poller) and act on the department from the outside. A chain step cannot watch the system while it is queued - that is exactly why the supervisor is a sidecar.",
+    "who_runs_them": "department_queue.watch() calls them once per poll cycle.",
+    "safety_invariant": "Every sidecar writes an audit row before it changes anything, and none of them can publish or bypass ISABELLA/MARCUS."
+  },
+  "roster": [
+    "arjun",
+    "intake",
+    "maya",
+    "sophie",
+    "daniel",
+    "leo",
+    "oliver",
+    "isabella",
+    "noah",
+    "grace",
+    "ella",
+    "victoria",
+    "helena",
+    "supervisor",
+    "dispatcher",
+    "idle_manager",
+    "retention"
+  ],
+  "roster_note": "14 agents (2026-10-10). Merged agents keep their entries (merged_into) because their proven code still runs inside the agent that absorbed them.",
+  "_idle_management": {
+    "rule": "Whenever the idle manager starts, the FULL agentic flow runs start to end (NADIA..GRACE); only publishing is held until a scheduled slot.",
+    "decision_rule": "video first when it fits; in a short gap make the kind the next slot lacks; else the emptiest stock (stock.choose_kind)",
+    "priority": [
+      "video (real + cartoon) x5",
+      "image x5 (only when a video does not fit, or video stock is full)",
+      "text x5 (same)",
+      "ARJUN keeps research + ready topics (always, in his own idle time)"
+    ],
+    "free_time_minutes": {
+      "video": 120,
+      "image": 30,
+      "text": 20
+    },
+    "waiting_lists": "STOCK/WAITING-FOR-PUBLISH.md has three sections: VIDEO, IMAGE + TEXT, TEXT only",
+    "normal_process": "The normal scheduled process always runs and always wins; idle work never delays a scheduled post",
+    "no_topic": "ARJUN is triggered first; production starts after he has topics"
+  },
+  "_version": "AutoPost Autonomous System 3.0"
+}

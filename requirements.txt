@@ -1,0 +1,16 @@
+# AutoPost Automation 3.0 - core packages
+requests
+urllib3
+psutil
+numpy
+Pillow
+cryptography
+edge-tts
+faster-whisper
+yt-dlp
+imageio
+imageio-ffmpeg
+trend-pulse
+gradio_client
+google-api-python-client
+google-auth-oauthlib

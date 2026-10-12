@@ -1,0 +1,7 @@
+# Only for making video on your own graphics card (NVIDIA, 8 GB or more).
+# Install the right torch build for your card first: https://pytorch.org/get-started/locally/
+torch
+diffusers
+transformers
+accelerate
+sentencepiece

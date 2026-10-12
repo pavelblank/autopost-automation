@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en"><head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Research · AutoPost</title>
+<link rel="stylesheet" href="/assets/ui/app.css">
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:16px}
+  .kpi b{display:block;font-size:30px;line-height:1.1;margin:4px 0}
+  .kpi small{color:var(--dim2,#8b98a9)}
+  .chip{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--card2,#161d27);border:1px solid var(--line,#26303d);margin:2px 4px 2px 0}
+  .tr{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line,#26303d);flex-wrap:wrap}
+  .tr:last-child{border-bottom:0}
+  .tr .t{flex:1;min-width:240px;font-size:14px}
+  .tr select,.tr button,.addrow input{font:inherit}
+  .addrow{display:flex;gap:8px;flex-wrap:wrap}
+  .addrow input{flex:1;min-width:240px;background:var(--card2,#161d27);color:var(--text,#e6edf3);border:1px solid var(--line,#26303d);border-radius:8px;padding:8px 10px}
+  .ok{color:#3fb950}.bad{color:#f85149}.run{color:#58a6ff}
+  .banner{background:rgba(63,185,80,.1);border:1px solid #3fb95055;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px}
+  table.mini{width:100%;border-collapse:collapse}table.mini td,table.mini th{padding:8px 10px;font-size:13px;text-align:left;border-bottom:1px solid var(--line,#26303d)}
+  .mut{color:var(--dim2,#8b98a9)}
+</style></head><body>
+
+<header><div class="hd">
+  <div class="logo">AutoPost <span>&mdash; research</span></div>
+  <nav class="nav">
+    <a href="/">Overview</a><a href="/posts">Posts</a><a href="/research" class="on">Research</a><a href="/conversations">Conversations</a><a href="/office">Agent Office</a><a href="/settings">Settings</a>
+  </nav>
+</div></header>
+
+<div class="wrap">
+  <div id="msg"></div>
+
+  <div class="kpis">
+    <div class="card"><div class="cb kpi"><small>Topics ready to use</small><b id="k-total">&hellip;</b><div id="k-chips"></div></div></div>
+    <div class="card"><div class="cb kpi"><small>Who does the research</small><b>ARJUN</b><small>topic scout &mdash; runs on its own, even when this page is closed</small></div></div>
+    <div class="card"><div class="cb kpi"><small>Next research trigger</small><b id="k-next">&hellip;</b><small id="k-cad"></small></div></div>
+    <div class="card"><div class="cb kpi">
+      <small>Run it now</small>
+      <form method="post" action="/research-scout" style="margin-top:8px"><button class="btn primary" type="submit">Scout topics now</button></form>
+      <small>ARJUN starts right away; the result appears in the table below.</small>
+    </div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="ch"><h2>Research triggers</h2><span class="sub">every time ARJUN went looking for topics, newest first</span></div>
+    <div class="cb"><table class="mini"><thead><tr><th>When</th><th>Result</th><th>What he found</th></tr></thead><tbody id="runs"><tr><td colspan="3" class="mut">Loading&hellip;</td></tr></tbody></table></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="ch"><h2>Add your own topic</h2><span class="sub">your topics rank above scraped ones</span></div>
+    <div class="cb"><form class="addrow" method="post" action="/topic-add">
+      <input type="text" name="topic" placeholder="e.g. why the ocean glows at night" required>
+      <button class="btn primary" type="submit">Add</button></form></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><h2>Researched topics</h2><span class="sub">pick one to turn into content &mdash; Make sends it to the 18-agent department</span></div>
+    <div class="cb" id="topics"><div class="mut">Loading&hellip;</div></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function j(u){ try{ const r = await fetch(u,{cache:"no-store"}); return await r.json(); }catch(e){ return null; } }
+const t12 = ts => new Date(ts*1000).toLocaleTimeString([], {hour:"numeric", minute:"2-digit", hour12:true});
+const d12 = ts => { const d = new Date(ts*1000), n = new Date(); const same = d.toDateString() === n.toDateString();
+  return (same ? "today " : d.toLocaleDateString([], {month:"short", day:"numeric"}) + " ") + t12(ts); };
+const SRC = {reddit:"REDDIT", trends:"GOOGLE", yt:"YOUTUBE", you:"YOU", trendpulse:"TREND PULSE"};
+let NEXT_AT = 0, RUNNING = false;
+
+function tick(){
+  if (RUNNING){ $("#k-next").textContent = "running now"; return; }
+  const s = Math.max(0, Math.round(NEXT_AT - Date.now()/1000));
+  $("#k-next").textContent = s <= 0 ? "any moment" : (s >= 60 ? Math.floor(s/60) + " min " + (s%60) + " s" : s + " s");
+}
+async function load(){
+  const d = await j("/api/research");
+  if (!d){ $("#topics").textContent = "cannot reach the research data"; return; }
+  $("#k-total").textContent = d.total;
+  $("#k-chips").innerHTML = Object.keys(d.by_source||{}).map(k => '<span class="chip">' + esc(SRC[k]||k.toUpperCase()) + ' ' + d.by_source[k] + '</span>').join("") || "none";
+  NEXT_AT = d.next_at || 0; RUNNING = !!d.running;
+  $("#k-cad").textContent = "scouts every " + Math.round((d.cadence_sec||300)/60) + " minutes";
+  tick();
+  $("#runs").innerHTML = (d.runs||[]).map(r => '<tr><td>' + esc(d_12(r.started)) + '</td><td class="' + (r.status==="done"?"ok":r.status==="running"?"run":"bad") + '">' + esc(r.status) + '</td><td>' + esc(r.reason||"") + '</td></tr>').join("")
+    || '<tr><td colspan="3" class="mut">No research run recorded yet. It starts when the poller next checks.</td></tr>';
+  $("#topics").innerHTML = (d.topics||[]).map(t =>
+    '<div class="tr"><span class="chip">' + esc(SRC[t.source]||String(t.source||"?").toUpperCase()) + '</span>'
+    + (t.hook && t.hook !== "FACT" ? '<span class="chip">' + esc(t.hook) + (t.score >= 4 ? ' <b>' + t.score + '</b>' : '') + '</span>' : '')
+    + '<div class="t">' + esc(t.title) + '</div>'
+    + '<span class="mut" style="font-size:12px">found ' + esc(d_12(t.found)) + '</span>'
+    + '<form method="post" action="/make" style="display:flex;gap:6px"><input type="hidden" name="topic" value="' + esc(t.title) + '">'
+    + '<select name="kind"><option value="video">video</option><option value="image">image</option><option value="text">text</option></select>'
+    + '<button class="btn primary" type="submit">Make</button></form>'
+    + '<form method="post" action="/skip"><input type="hidden" name="id" value="' + t.id + '"><button class="btn" type="submit">Skip</button></form></div>'
+  ).join("") || '<div class="mut">No topics yet.</div>';
+}
+function d_12(ts){ return ts ? d12(ts) : "-"; }
+const m = new URLSearchParams(location.search).get("m");
+if (m) $("#msg").innerHTML = '<div class="banner">' + esc(m) + '</div>';
+load(); setInterval(load, 15000); setInterval(tick, 1000);
+// like the old page: opening Research (and every 5 minutes after) asks ARJUN to scout - he only goes when the AI engine is idle
+const scoutNow = () => fetch("/research-scout", {method: "POST", redirect: "manual"}).catch(() => {});
+setTimeout(scoutNow, 1500); setInterval(scoutNow, 300000);
+</script></body></html>

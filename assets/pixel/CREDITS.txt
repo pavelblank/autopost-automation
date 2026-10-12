@@ -1,0 +1,3 @@
+Sprites in this folder come from https://github.com/pixel-agents-hq/pixel-agents (MIT, (c) 2026 Pablo De Lucca - see LICENSE-pixel-agents.txt).
+Character sprites there are based on JIK-A-4, "Metro City" free top-down character pack: https://jik-a-4.itch.io/metrocity-free-topdown-character-pack
+Used only by the AutoPost Agent Office view (office.html). Engine code is our own.

@@ -1,0 +1,3 @@
+# Copy to paths.toml and edit. Full paths, no quotes problems on Windows: use forward slashes.
+ffmpeg_bin = "C:/path/to/ffmpeg/bin"
+video_size = "720x1280"

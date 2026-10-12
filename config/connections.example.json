@@ -1,0 +1,61 @@
+{
+  "telegram": {
+    "connected": false,
+    "token": "",
+    "chat_id": 0,
+    "account": ""
+  },
+  "x": {
+    "connected": false,
+    "status": "",
+    "api_key": "",
+    "api_key_secret": "",
+    "access_token": "",
+    "access_token_secret": "",
+    "bearer": "",
+    "account": ""
+  },
+  "youtube": {
+    "connected": false,
+    "account": "",
+    "channel_id": "",
+    "privacy": ""
+  },
+  "tiktok": {
+    "connected": false,
+    "account": ""
+  },
+  "telegram_channel": {
+    "connected": false,
+    "token": "",
+    "chat_id": 0,
+    "account": ""
+  },
+  "bluesky": {
+    "connected": false,
+    "handle": "",
+    "app_password": "",
+    "account": ""
+  },
+  "mastodon": {
+    "connected": false,
+    "instance": "",
+    "token": "",
+    "account": ""
+  },
+  "discord": {
+    "connected": false,
+    "token": "",
+    "channel_id": "",
+    "account": ""
+  },
+  "socialai": {
+    "connected": false,
+    "url": "",
+    "password": "",
+    "account": "",
+    "target": "local",
+    "public_url": "",
+    "public_password": ""
+  }
+}

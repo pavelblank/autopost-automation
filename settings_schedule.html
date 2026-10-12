@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- AutoPost Automation 3.0 - created by Mr Blank (github.com/pavelblank/autopost-automation). Keep this notice. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publishing Schedule - AUTOPOST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px 20px;
+            border-bottom: 4px solid #3498db;
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .schedule-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .schedule-info {
+            flex: 1;
+        }
+
+        .schedule-platform {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 3px;
+        }
+
+        .schedule-times {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .add-new {
+            width: 100%;
+            padding: 12px;
+            background: #ecf0f1;
+            border: 2px dashed #3498db;
+            color: #3498db;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .add-new:hover {
+            background: #dbeafe;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+
+        .info-box strong {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/" class="back-link">← Back to Dashboard</a>
+            <h1>Publishing Schedule</h1>
+            <p>Manage when content posts to each platform</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="section-title">Platform Schedules</div>
+
+            <div id="scheduleList">
+                <!-- Schedules will be loaded here -->
+            </div>
+
+            <button class="btn btn-primary add-new" onclick="openAddModal()">
+                + Add New Platform
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="info-box">
+                <strong>How to Format Times:</strong><br>
+                • Single: 9:00 AM<br>
+                • Multiple: 9:00 AM, 2:00 PM, 6:00 PM<br>
+                • Days: 6:00 AM (Tue, Fri)<br>
+                • Range: 9:00 AM - 7:00 PM (hourly)
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="platformModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Add New Platform</div>
+
+            <div class="form-group">
+                <label>Platform Name</label>
+                <input type="text" id="platformName" placeholder="e.g., Instagram, Pinterest">
+            </div>
+
+            <div class="form-group">
+                <label>Posting Times</label>
+                <input type="text" id="platformTimes" placeholder="e.g., 9:00 AM, 2:00 PM, 6:00 PM">
+            </div>
+
+            <div class="form-group">
+                <label>Posts Per Day</label>
+                <input type="number" id="postsPerDay" min="1" max="20" value="3">
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="savePlatform()">Save</button>
+                <button class="btn" style="background: #ecf0f1; color: #2c3e50;" onclick="closeAddModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let schedules = JSON.parse(localStorage.getItem('platformSchedules')) || [
+            { name: 'Telegram', times: '9:00 AM, 2:30 PM', postsPerDay: 5 },
+            { name: 'YouTube', times: '6:00 AM (Tue, Fri)', postsPerDay: 2 },
+            { name: 'TikTok', times: '12:00 PM, 3:00 PM, 6:00 PM', postsPerDay: 3 },
+            { name: 'Bluesky', times: '9:00 AM, 1:00 PM, 5:00 PM', postsPerDay: 3 },
+            { name: 'Mastodon', times: '9:00 AM, 2:00 PM, 6:00 PM', postsPerDay: 3 },
+            { name: 'Discord', times: '9:00 AM - 7:00 PM (hourly)', postsPerDay: 10 },
+            { name: 'Facebook', times: '2:00 PM (Mon, Wed, Fri)', postsPerDay: 1 }
+        ];
+
+        function loadSchedules() {
+            const list = document.getElementById('scheduleList');
+            list.innerHTML = schedules.map((s, i) => `
+                <div class="schedule-item">
+                    <div class="schedule-info">
+                        <div class="schedule-platform">${s.name}</div>
+                        <div class="schedule-times">${s.times} (${s.postsPerDay}/day)</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="editSchedule(${i})">Edit</button>
+                    <button class="btn btn-danger" onclick="deleteSchedule(${i})">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('platformName').value = '';
+            document.getElementById('platformTimes').value = '';
+            document.getElementById('postsPerDay').value = '3';
+            document.getElementById('modalTitle').textContent = 'Add New Platform';
+            window.editingIndex = null;
+            document.getElementById('platformModal').classList.add('active');
+        }
+
+        function editSchedule(index) {
+            const s = schedules[index];
+            document.getElementById('platformName').value = s.name;
+            document.getElementById('platformTimes').value = s.times;
+            document.getElementById('postsPerDay').value = s.postsPerDay;
+            document.getElementById('modalTitle').textContent = 'Edit Platform';
+            window.editingIndex = index;
+            document.getElementById('platformModal').classList.add('active');
+        }
+
+        function deleteSchedule(index) {
+            if (confirm('Delete this platform schedule?')) {
+                schedules.splice(index, 1);
+                localStorage.setItem('platformSchedules', JSON.stringify(schedules));
+                loadSchedules();
+            }
+        }
+
+        function savePlatform() {
+            const name = document.getElementById('platformName').value.trim();
+            const times = document.getElementById('platformTimes').value.trim();
+            const postsPerDay = parseInt(document.getElementById('postsPerDay').value);
+
+            if (!name || !times) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (window.editingIndex !== null && window.editingIndex !== undefined) {
+                schedules[window.editingIndex] = { name, times, postsPerDay };
+            } else {
+                schedules.push({ name, times, postsPerDay });
+            }
+
+            localStorage.setItem('platformSchedules', JSON.stringify(schedules));
+            loadSchedules();
+            closeAddModal();
+            alert('Schedule saved!');
+        }
+
+        function closeAddModal() {
+            document.getElementById('platformModal').classList.remove('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSchedules);
+    </script>
+</body>
+</html>
