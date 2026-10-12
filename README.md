@@ -131,6 +131,7 @@ Automation by Mr Blank.
 
 - [INSTALL.md](INSTALL.md) step by step setup
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) common problems and how to fix them
+- [docs/ADD-A-PLATFORM.md](docs/ADD-A-PLATFORM.md) how to add another place to post
 - [USER-MANUAL.md](USER-MANUAL.md) daily use, every page, every setting
 - [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) the agents, the three systems, what happens when something fails
 - [CHANGELOG.md](CHANGELOG.md) what changed in version 3.0
